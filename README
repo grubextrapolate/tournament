@@ -1,0 +1,40 @@
+
+tournament - perl/mysql ncaa tournament bracket tracker
+
+Copyright (C) 2004 Russ Burdick, grub@extrapolation.net
+
+tournament (aka marchmadness) is a set of perl/mysql cgi programs to
+track picks throught the ncaa tournament. at present it is specific to
+the mens division i tournament (64 teams in 4 divisions) but maybe
+someday i'll make it more generic so that it can be used for other
+divisions or with things like the nba playoffs. the scoring is based on 
+getting seed+4 for each win. we've been talking about extending this so
+that the round is taken into account too, but at present this capability
+is not there.
+
+features of the cgi pages include raw editing of any database, importing
+of data (if you start using this part way through a tournament and
+happen to have data in an electronic format that is useable), score
+display, bracket display, tournament setup page, and player pick page.
+
+requires the following perl modules:
+
+CGI
+DBI
+DBD::mysql
+
+setup is pretty simple:
+
+1) copy the contents of the cgi-bin subdir to an appropriate location 
+(such as your cgi-bin)
+
+2) copy the contents of the html subdir to an appropriate location on 
+you website
+
+3) create the mysql database tables using the html/marchmadness.sql file
+
+4) modify the settings in cgi-bin/marchmadness/CDDBConstants.pm to match
+your setup, in particular the db configuration.
+
+5) depending where you put the html and cgi-bin contents in 1) and 2) 
+you may need to modify the html/marchmadness.html file
