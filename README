@@ -1,7 +1,7 @@
 
 tournament - perl/mysql ncaa tournament bracket tracker
 
-Copyright (C) 2004 Russ Burdick, grub@extrapolation.net
+Copyright (C) 2004-2015 Russ Burdick, grub@extrapolation.net
 
 tournament (aka marchmadness) is a set of perl/mysql cgi programs to
 track picks throught the ncaa tournament. at present it is specific to
@@ -22,6 +22,7 @@ requires the following perl modules:
 CGI
 DBI
 DBD::mysql
+HTML::Template
 
 setup is pretty simple:
 

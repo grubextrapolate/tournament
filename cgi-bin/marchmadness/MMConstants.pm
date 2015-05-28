@@ -34,7 +34,7 @@ $dsn        = "DBI:mysql:database=$dbdatabase;host=$dbserver";
 
 $zap_password = "b5isno1";
 
-$tmpldir = "/home/content/77/9481577/html/extrapolation.net/marchmadness";
+$tmpldir = "MM_TEMPLATE_DIR";
 
 use vars qw(@weekdays @days @months %monthh @years @hours @mins @ap);
 
