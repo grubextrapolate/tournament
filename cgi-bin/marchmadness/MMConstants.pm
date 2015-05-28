@@ -23,13 +23,18 @@ use strict;
 use diagnostics;
 
 # Declare some commonly used variables
-use vars qw($dbdatabase $dbserver $dbport $dbusername $dbpassword);
+use vars qw($dsn $dbdatabase $dbserver $dbport $dbusername $dbpassword $zap_password $tmpldir);
 
 $dbdatabase = "MM_DB_NAME";
 $dbserver = "MM_DB_HOST_OR_IP";
 $dbport = "3306";
 $dbusername = "MM_DB_USER";
 $dbpassword = "MM_DB_PASSWORD";
+$dsn        = "DBI:mysql:database=$dbdatabase;host=$dbserver";
+
+$zap_password = "b5isno1";
+
+$tmpldir = "/home/content/77/9481577/html/extrapolation.net/marchmadness";
 
 use vars qw(@weekdays @days @months %monthh @years @hours @mins @ap);
 
@@ -44,7 +49,7 @@ use vars qw(@weekdays @days @months %monthh @years @hours @mins @ap);
            'May' => '05', 'Jun' => '06', 'Jul' => '07', 'Aug' => '08',
            'Sep' => '09', 'Oct' => '10', 'Nov' => '11', 'Dec' => '12');
 @years = ('1996', '1997', '1998', '1999', '2000', '2001', '2002',
-          '2003', '2004', '2005');
+          '2003', '2004', '2005', '2006', '2007', '2008', '2009');
 @hours = (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12);
 @mins = ('00', '05', '10', '15', '20', '25', '30', '35', '40', '45',
          '50', '55');
@@ -156,6 +161,45 @@ sub yesno {
    }
 
    return $ret;
+}
+
+my $pastCutoff;
+sub pastCutoff
+{
+   my $tcutoff = shift;
+   my $cur = time();
+   my $cut_sec = str2time($tcutoff, "-0400");
+#my $fudge = -25620; # = -(7*60*60 + 7*60) = 7 hour+7min fast
+#my $fudge = -420; # = -(0*60*60 + 7*60) = 0 hour+7min fast
+   my $fudge = 0; # = -(0*60*60 + 7*60) = 0 hour+7min fast
+   my $real_sec = $cur + $fudge;
+
+   my $diff_sec = $cut_sec - $real_sec;
+
+   my $now_str = time2str($real_sec);
+   my $cut_str = time2str($cut_sec);
+   my $localtm = localtime($real_sec);
+
+#print "<p>";
+#print "cur = $cur<br>\n";
+#print "cut_sec = $cut_sec<br>\n";
+#print "fudge = $fudge<br>\n";
+#print "real_sec = $real_sec<br>\n";
+#print "localtm = $localtm<br>\n";
+#print "diff_sec = $diff_sec<br>\n";
+#print "now_str = $now_str<br>\n";
+#print "cut_str = $cut_str<br>\n";
+#print "</p>\n";
+
+   if ($real_sec >= $cut_sec)
+   {
+      return 1;
+   }
+   else
+   {
+      return 0;
+   }
+
 }
 
 # Exit normally;

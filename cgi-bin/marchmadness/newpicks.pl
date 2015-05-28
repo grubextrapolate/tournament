@@ -1,24 +1,6 @@
 #!/usr/bin/perl -wT
 # This is newpicks.pl, which can be used to make picks
-#
-# Copyright (C) 2004 Russ Burdick, grub@extrapolation.net
-#
-# This file is part of tournament.
-#
-# tournament is free software; you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
-# (at your option) any later version.
-#
-# tournament is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with tournament; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
-#
+
 
 use strict;
 use diagnostics;
@@ -36,6 +18,7 @@ my %tourneys;
 my @tourney_ids;
 my %players;
 my @player_ids;
+my @dorder;
 
 # ------------------------------------------------------------
 # Create an instance of CGI
@@ -54,11 +37,13 @@ if ($query->request_method eq "GET") {
 
    # ------------------------------------------------------------
    # Connect to the database
-   my $dbh = DBI->connect("DBI:mysql:$dbdatabase:$dbserver:$dbport",
-                          $dbusername, $dbpassword);
+   my $dbh = DBI->connect($dsn, $dbusername, $dbpassword);
    die "DBI error from connect: ", $DBI::errstr unless $dbh;
 
-   my $sql = "SELECT * FROM tournaments ORDER BY year";
+#   my $sql = "SELECT * FROM tournaments ORDER BY year DESC";
+   my $sql = "SELECT * FROM tournaments ";
+   $sql .= "WHERE (cutoff + INTERVAL 0 HOUR) > (NOW() + INTERVAL 4 HOUR) ";
+   $sql .= " ORDER BY year DESC";
 
    # Send the query
    my $sth = $dbh->prepare($sql);
@@ -118,8 +103,17 @@ if ($query->request_method eq "GET") {
                             -values => \@player_ids,
                             -labels => \%players) . "<br>\n";
 
-   print $query->submit(-name => "submit", 
-                        -value => "continue") . "</p>\n";
+   if (scalar @tourney_ids)
+   {
+      print $query->submit(-name => "submit",
+                           -value => "continue") . "</p>\n";
+   }
+   else
+   {
+      print $query->submit(-name => "submit",
+                           -disabled => 1,
+                           -value => "continue") . "</p>\n";
+   }
 
    print "</form>\n";
 
@@ -144,8 +138,7 @@ if ($query->request_method eq "GET") {
 
          # ------------------------------------------------------------
          # Connect to the database
-         my $dbh = DBI->connect("DBI:mysql:$dbdatabase:$dbserver:$dbport",
-                                $dbusername, $dbpassword);
+         my $dbh = DBI->connect($dsn, $dbusername, $dbpassword);
          die "DBI error from connect: ", $DBI::errstr unless $dbh;
 
          my $sql = "SELECT name, year FROM tournaments ";
@@ -200,7 +193,7 @@ if ($query->request_method eq "GET") {
 
          $sql = "SELECT * FROM divisions ";
          $sql .= "WHERE tourneyid = " . $dbh->quote($tid);
-         $sql .= " ORDER BY id";
+         $sql .= " ORDER BY position";
 
          # Send the query
          $sth = $dbh->prepare($sql);
@@ -218,6 +211,7 @@ if ($query->request_method eq "GET") {
             my $row;
             while ($row = $sth->fetchrow_hashref) {
 
+               push @dorder, $row->{id};
                $divisions{$row->{id}} = $row->{name};
                push @division_ids, $row->{id};
 
@@ -266,12 +260,26 @@ if ($query->request_method eq "GET") {
 
          print qq(<form method="POST" action="newpicks.pl">\n);
          print qq(<h2>$tname</h2>\n);
+         print qq(<p>Rules: pick 2 teams from each region and 4 additional\n);
+         print qq(wildcard teams. when a team wins you get a score equal to\n);
+         print qq(their seed+4 (so a win by a 3 seed would give 7 points).\n);
+         print qq(<p>the "bonus" winner pick will give <strong>no points</strong> through the\n);
+         print qq(individual games but will give a bonus of (seed + 4)*5 if\n);
+         print qq{they win the tournament (so a win by a 3 seed would give\n};
+         print qq{35 bonus points).</p>\n};
+         print qq(<p>the person with the highest total score at the end of the\n);
+         print qq(tournament wins.</p>\n);
+         print qq(<strong>Note: </strong>Don't use this page if you need to\n);
+         print qq(CHANGE one of your picks as you'll end up with duplicate\n);
+         print qq(picks. <a href="mailto:grub\@extrapolation.net">email me</a>\n);
+         print qq(BEFORE tip-off in the first game to make any changes.</p>\n);
+
          print $query->hidden(-name => 'tourneyid',
                               -value => $tid) . "\n";
          print $query->hidden(-name => 'playerid',
                               -value => $player) . "\n";
 
-         foreach my $did (keys %divisions) {
+         foreach my $did (@dorder) {
 
             print qq(<h2>$divisions{$did}</h2>\n);
 
@@ -290,14 +298,21 @@ if ($query->request_method eq "GET") {
          }
 
          print qq(<h2>Wildcard</h2>\n);
-         print "<p>" . $query->hidden(-name => 'wildcard',
-                                      -value => 1) . "\n";
-         print $query->popup_menu(-name => "picks",
-                                  -values => \@allteam_ids,
-                                  -labels => \%allteams) . "<br>\n";
 
-         print $query->hidden(-name => 'wildcard',
-                                      -value => 1) . "\n";
+         print "<p>";
+         for (my $i = 1; $i <= 4; $i++)
+         {
+            print $query->hidden(-name => 'wildcard',
+                                 -value => 1) . "\n";
+            print $query->popup_menu(-name => "picks",
+                                     -values => \@allteam_ids,
+                                     -labels => \%allteams) . "<br>\n";
+         }
+         print "</p>";
+
+         print qq(<h2>Bonus: Winner Pick</h2>\n);
+         print "<p>" . $query->hidden(-name => 'wildcard',
+                                      -value => 2) . "\n";
          print $query->popup_menu(-name => "picks",
                                   -values => \@allteam_ids,
                                   -labels => \%allteams) . "</p>\n";
@@ -322,8 +337,7 @@ if ($query->request_method eq "GET") {
 
          # ------------------------------------------------------------
          # Connect to the database
-         my $dbh = DBI->connect("DBI:mysql:$dbdatabase:$dbserver:$dbport",
-                                $dbusername, $dbpassword);
+         my $dbh = DBI->connect($dsn, $dbusername, $dbpassword);
          die "DBI error from connect: ", $DBI::errstr unless $dbh;
 
          for (my $i = 0; $i < @picks; $i++) {
@@ -351,8 +365,14 @@ if ($query->request_method eq "GET") {
          $dbh->disconnect;
 
          print "<p>save picks successful!</p>\n";
+         print qq(<p>go to <a href="display.pl?tournament=$tid">current );
+         print qq(standings</a> or <a href="bracket.pl?tournament=$tid">);
+         print qq(current bracket</a></p>\n);
 
       } else {
+#print "tid=\"$tid\", pid=\"$pid\"\n";
+#print "picks=" . (join ",", @picks) . "\n";
+#print "wcflags=" . (join ",", @wcflags) . "\n";
          print "<p>information missing!</p>\n";
       }
 

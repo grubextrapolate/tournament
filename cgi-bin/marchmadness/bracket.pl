@@ -1,36 +1,20 @@
-.#!/usr/bin/perl -wT
+#!/usr/bin/perl -wT
 # This is bracket.pl, which displays bracket info
-#
-# Copyright (C) 2004 Russ Burdick, grub@extrapolation.net
-#
-# This file is part of tournament.
-#
-# tournament is free software; you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
-# (at your option) any later version.
-#
-# tournament is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with tournament; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
-#
 
 use strict;
 use diagnostics;
 use CGI;
 use CGI::Carp qw(fatalsToBrowser);
 use DBI;
+use HTTP::Date;
 
 use lib qw(.);
+use HTML::Template;
 use MMConstants;
 
 # Remove buffering
 $| = 1;
+
 
 my %divisions;
 my %division_seeds;
@@ -45,6 +29,7 @@ my %wcwins;
 my %wcscores;
 my @games;
 my @dwinners;
+my @dorder;
 my %pick_syms;
 
 # ------------------------------------------------------------
@@ -65,11 +50,10 @@ if (($query->request_method eq "GET") && ($tid == 0)) {
 
    # ------------------------------------------------------------
    # Connect to the database
-   my $dbh = DBI->connect("DBI:mysql:$dbdatabase:$dbserver:$dbport",
-                          $dbusername, $dbpassword);
+   my $dbh = DBI->connect($dsn, $dbusername, $dbpassword);
    die "DBI error from connect: ", $DBI::errstr unless $dbh;
 
-   my $sql = "SELECT * FROM tournaments";
+   my $sql = "SELECT * FROM tournaments ORDER BY year DESC";
 
    # Send the query
    my $sth = $dbh->prepare($sql);
@@ -104,19 +88,22 @@ if (($query->request_method eq "GET") && ($tid == 0)) {
 
    print "</form>\n";
 
+   # Disconnect, even though it isn't really necessary
+   $dbh->disconnect;
+
 } elsif ((($query->request_method eq "POST") && ($tid != 0)) ||
          (($query->request_method eq "GET") && ($tid != 0))) {
 
+   # open the html template
+   my $template = HTML::Template->new(filename => "$tmpldir/bracket.tmpl");
+
    my $tname;
    my $tupdate;
-
-   print $query->start_html(-title => "tournament brackets",
-                            -bgcolor => "#FFFFFF");
+   my $tcutoff;
 
    # ------------------------------------------------------------
    # Connect to the database
-   my $dbh = DBI->connect("DBI:mysql:$dbdatabase:$dbserver:$dbport",
-                          $dbusername, $dbpassword);
+   my $dbh = DBI->connect($dsn, $dbusername, $dbpassword);
    die "DBI error from connect: ", $DBI::errstr unless $dbh;
 
    my $sql = "SELECT * FROM players";
@@ -165,6 +152,7 @@ if (($query->request_method eq "GET") && ($tid == 0)) {
 
       $tname = "$row->{name}, $row->{year}";
       $tupdate = $row->{lastupdate};
+      $tcutoff = $row->{cutoff};
    }
 
    # Finish that database call
@@ -172,6 +160,7 @@ if (($query->request_method eq "GET") && ($tid == 0)) {
 
    $sql = "SELECT * FROM divisions ";
    $sql .= "WHERE tourneyid = " . $dbh->quote($tid);
+   $sql .= " ORDER BY position";
 
    # Send the query
    $sth = $dbh->prepare($sql);
@@ -189,6 +178,7 @@ if (($query->request_method eq "GET") && ($tid == 0)) {
       my $row;
       while ($row = $sth->fetchrow_hashref) {
 
+         push @dorder, $row->{id};
          $divisions{$row->{id}} = $row->{name};
          push @{$division_seeds{$row->{id}}}, "";
 
@@ -216,7 +206,7 @@ if (($query->request_method eq "GET") && ($tid == 0)) {
                $seeds{$row2->{id}} = $row2->{seed};
                push @{$division_seeds{$row2->{divisionid}}}, $row2->{id};
 
-               my $sql3 = "SELECT playerid FROM picks ";
+               my $sql3 = "SELECT DISTINCT playerid FROM picks ";
                $sql3 .= "WHERE tourneyid = " . $dbh->quote($tid);
                $sql3 .= " AND teamid = " . $dbh->quote($row2->{id});
 
@@ -232,12 +222,14 @@ if (($query->request_method eq "GET") && ($tid == 0)) {
                $pick_syms{$row2->{id}} = "[";
                my $rc3 = $sth3->rows;
                if ($rc3) {
-
+if (pastCutoff($tcutoff))
+{
                   # Iterate through artist IDs and names
                   my $row3;
                   while ($row3 = $sth3->fetchrow_hashref) {
                      $pick_syms{$row2->{id}} .= $players{$row3->{playerid}}->{symbol};
                   }
+}
                }
                $pick_syms{$row2->{id}} .= "]";
 
@@ -290,23 +282,25 @@ if (($query->request_method eq "GET") && ($tid == 0)) {
    # Finish that database call
    $sth->finish;
 
-   print qq(<h2>$tname</h2>\n);
-   print qq(<p>Last Updated $tupdate</p>\n);
-   print qq(<p>number in round brackets is seed. symbols in square brackets indicate players who have picked this team.</p>\n);
+   $template->param("tname" => $tname);
+   $template->param("tname" => $tname);
+   $template->param("tupdate" => $tupdate);
+   $template->param("tcutoff" => $tcutoff);
+   $template->param("tid" => $tid);
 
-   print qq(<p><a href="display.pl?tournament=3">view pool standings</a></p>\n);
-
-   print qq{<p>( };
+   my $tmp = "";
    my $j = keys %players;
-   foreach my $play (keys %players) {
-      print qq($players{$play}->{name}=$players{$play}->{symbol});
-      if ($j != 1) { print ", "; }
+   foreach my $play (sort { $players{$a}->{name} cmp $players{$b}->{name} } keys %players) {
+      $tmp .= qq($players{$play}->{name}=$players{$play}->{symbol});
+      if ($j != 1) { $tmp .= ", "; }
       $j--;
    }
-   print qq{ )</p>\n};
+   $template->param("playersymbols" => $tmp);
 
    my %tscores;
-   foreach my $did (keys %divisions) {
+   $j = 0;
+   foreach my $did (@dorder) {
+      $j++;
       my $tscore = 0;
       my $twins = 0;
       my @round1;
@@ -316,7 +310,7 @@ if (($query->request_method eq "GET") && ($tid == 0)) {
       my @round5;
       my $dwinner;
 
-      print qq(<h3>$divisions{$did}</h3>\n);
+      $template->param("d${j}name" => $divisions{$did});
 
       # translate seed pairings into order for first round
       push @round1, $division_seeds{$did}[1];
@@ -467,204 +461,43 @@ if (($query->request_method eq "GET") && ($tid == 0)) {
       }
       push @dwinners, $dwinner;
 
-      print <<END;
+      $template->param("d${j}r1g1" => qq(($seeds{$round1[0]}) <a href="team.pl?team=$round1[0]">$teams{$round1[0]}</a> $pick_syms{$round1[0]} - ) . $tscores{"r1$round1[0]"});
+      $template->param("d${j}r2g1" => qq(($seeds{$round2[0]}) <a href="team.pl?team=$round2[0]">$teams{$round2[0]}</a> $pick_syms{$round2[0]} - ) . $tscores{"r2$round2[0]"});
+      $template->param("d${j}r1g2" => qq(($seeds{$round1[1]}) <a href="team.pl?team=$round1[1]">$teams{$round1[1]}</a> $pick_syms{$round1[1]} - ) . $tscores{"r1$round1[1]"});
+      $template->param("d${j}r3g1" => qq(($seeds{$round3[0]}) <a href="team.pl?team=$round3[0]">$teams{$round3[0]}</a> $pick_syms{$round3[0]} - ) . $tscores{"r3$round3[0]"});
+      $template->param("d${j}r1g3" => qq(($seeds{$round1[2]}) <a href="team.pl?team=$round1[2]">$teams{$round1[2]}</a> $pick_syms{$round1[2]} - ) . $tscores{"r1$round1[2]"});
+      $template->param("d${j}r2g2" => qq(($seeds{$round2[1]}) <a href="team.pl?team=$round2[1]">$teams{$round2[1]}</a> $pick_syms{$round2[1]} - ) . $tscores{"r2$round2[1]"});
+      $template->param("d${j}r1g4" => qq(($seeds{$round1[3]}) <a href="team.pl?team=$round1[3]">$teams{$round1[3]}</a> $pick_syms{$round1[3]} - ) . $tscores{"r1$round1[3]"});
+      $template->param("d${j}r4g1" => qq(($seeds{$round4[0]}) <a href="team.pl?team=$round4[0]">$teams{$round4[0]}</a> $pick_syms{$round4[0]} - ) . $tscores{"r4$round4[0]"});
+      $template->param("d${j}r1g5" => qq(($seeds{$round1[4]}) <a href="team.pl?team=$round1[4]">$teams{$round1[4]}</a> $pick_syms{$round1[4]} - ) . $tscores{"r1$round1[4]"});
+      $template->param("d${j}r2g3" => qq(($seeds{$round2[2]}) <a href="team.pl?team=$round2[2]">$teams{$round2[2]}</a> $pick_syms{$round2[2]} - ) . $tscores{"r2$round2[2]"});
+      $template->param("d${j}r1g6" => qq(($seeds{$round1[5]}) <a href="team.pl?team=$round1[5]">$teams{$round1[5]}</a> $pick_syms{$round1[5]} - ) . $tscores{"r1$round1[5]"});
+      $template->param("d${j}r3g2" => qq(($seeds{$round3[1]}) <a href="team.pl?team=$round3[1]">$teams{$round3[1]}</a> $pick_syms{$round3[1]} - ) . $tscores{"r3$round3[1]"});
+      $template->param("d${j}r1g7" => qq(($seeds{$round1[6]}) <a href="team.pl?team=$round1[6]">$teams{$round1[6]}</a> $pick_syms{$round1[6]} - ) . $tscores{"r1$round1[6]"});
+      $template->param("d${j}r2g4" => qq(($seeds{$round2[3]}) <a href="team.pl?team=$round2[3]">$teams{$round2[3]}</a> $pick_syms{$round2[3]} - ) . $tscores{"r2$round2[3]"});
+      $template->param("d${j}r1g8" => qq(($seeds{$round1[7]}) <a href="team.pl?team=$round1[7]">$teams{$round1[7]}</a> $pick_syms{$round1[7]} - ) . $tscores{"r1$round1[7]"});
+      $template->param("d${j}winner" => qq(($seeds{$dwinner}) <a href="team.pl?team=$dwinner">$teams{$dwinner}</a> $pick_syms{$dwinner}));
+      $template->param("d${j}r1g9" => qq(($seeds{$round1[8]}) <a href="team.pl?team=$round1[8]">$teams{$round1[8]}</a> $pick_syms{$round1[8]} - ) . $tscores{"r1$round1[8]"});
+      $template->param("d${j}r2g5" => qq(($seeds{$round2[4]}) <a href="team.pl?team=$round2[4]">$teams{$round2[4]}</a> $pick_syms{$round2[4]} - ) . $tscores{"r2$round2[4]"});
+      $template->param("d${j}r1g10" => qq(($seeds{$round1[9]}) <a href="team.pl?team=$round1[9]">$teams{$round1[9]}</a> $pick_syms{$round1[9]} - ) . $tscores{"r1$round1[9]"});
+      $template->param("d${j}r3g3" => qq(($seeds{$round3[2]}) <a href="team.pl?team=$round3[2]">$teams{$round3[2]}</a> $pick_syms{$round3[2]} - ) . $tscores{"r3$round3[2]"});
+      $template->param("d${j}r1g11" => qq(($seeds{$round1[10]}) <a href="team.pl?team=$round1[10]">$teams{$round1[10]}</a> $pick_syms{$round1[10]} - ) . $tscores{"r1$round1[10]"});
+      $template->param("d${j}r2g6" => qq(($seeds{$round2[5]}) <a href="team.pl?team=$round2[5]">$teams{$round2[5]}</a> $pick_syms{$round2[5]} - ) . $tscores{"r2$round2[5]"});
+      $template->param("d${j}r1g12" => qq(($seeds{$round1[11]}) <a href="team.pl?team=$round1[11]">$teams{$round1[11]}</a> $pick_syms{$round1[11]} - ) . $tscores{"r1$round1[11]"});
+      $template->param("d${j}r4g2" => qq(($seeds{$round4[1]}) <a href="team.pl?team=$round4[1]">$teams{$round4[1]}</a> $pick_syms{$round4[1]} - ) . $tscores{"r4$round4[1]"});
+      $template->param("d${j}r1g13" => qq(($seeds{$round1[12]}) <a href="team.pl?team=$round1[12]">$teams{$round1[12]}</a> $pick_syms{$round1[12]} - ) . $tscores{"r1$round1[12]"});
+      $template->param("d${j}r2g7" => qq(($seeds{$round2[6]}) <a href="team.pl?team=$round2[6]">$teams{$round2[6]}</a> $pick_syms{$round2[6]} - ) . $tscores{"r2$round2[6]"});
+      $template->param("d${j}r1g14" => qq(($seeds{$round1[13]}) <a href="team.pl?team=$round1[13]">$teams{$round1[13]}</a> $pick_syms{$round1[13]} - ) . $tscores{"r1$round1[13]"});
+      $template->param("d${j}r3g4" => qq(($seeds{$round3[3]}) <a href="team.pl?team=$round3[3]">$teams{$round3[3]}</a> $pick_syms{$round3[3]} - ) . $tscores{"r3$round3[3]"});
+      $template->param("d${j}r1g15" => qq(($seeds{$round1[14]}) <a href="team.pl?team=$round1[14]">$teams{$round1[14]}</a> $pick_syms{$round1[14]} - ) . $tscores{"r1$round1[14]"});
+      $template->param("d${j}r2g8" => qq(($seeds{$round2[7]}) <a href="team.pl?team=$round2[7]">$teams{$round2[7]}</a> $pick_syms{$round2[7]} - ) . $tscores{"r2$round2[7]"});
+      $template->param("d${j}r1g16" => qq(($seeds{$round1[15]}) <a href="team.pl?team=$round1[15]">$teams{$round1[15]}</a> $pick_syms{$round1[15]} - ) . $tscores{"r1$round1[15]"});
 
-<table border="0" cellspacing="0" cellpadding="2" width="100%">
-  <tr>
-    <th width="20%">First Round</th>
-    <th width="20%">Second Round</th>
-    <th width="20%">Sweet Sixteen</th>
-    <th width="20%">Elite Eight</th>
-    <th width="20%">Final Four</th>
-  </tr>
 
-  <tr>
-    <td bgcolor="#555555">($seeds{$round1[0]}) $teams{$round1[0]} $pick_syms{$round1[0]} - $tscores{"r1$round1[0]"}</td>
-  </tr>
-  <tr>
-    <td bgcolor="#555555"></td>
-    <td bgcolor="#777777">($seeds{$round2[0]}) $teams{$round2[0]} $pick_syms{$round2[0]} - $tscores{"r2$round2[0]"}</td>
-  </tr>
-  <tr>
-    <td bgcolor="#555555">($seeds{$round1[1]}) $teams{$round1[1]} $pick_syms{$round1[1]} - $tscores{"r1$round1[1]"}</td>
-    <td bgcolor="#777777"></td>
-  </tr>
-
-  <tr>
-    <td></td>
-    <td bgcolor="#777777"></td>
-    <td bgcolor="#aaaaaa">($seeds{$round3[0]}) $teams{$round3[0]} $pick_syms{$round3[0]} - $tscores{"r3$round3[0]"}</td>
-  </tr>
-
-  <tr>
-    <td bgcolor="#555555">($seeds{$round1[2]}) $teams{$round1[2]} $pick_syms{$round1[2]} - $tscores{"r1$round1[2]"}</td>
-    <td bgcolor="#777777"></td>
-    <td bgcolor="#aaaaaa"></td>
-  </tr>
-  <tr>
-    <td bgcolor="#555555"></td>
-    <td bgcolor="#777777">($seeds{$round2[1]}) $teams{$round2[1]} $pick_syms{$round2[1]} - $tscores{"r2$round2[1]"}</td>
-    <td bgcolor="#aaaaaa"></td>
-  </tr>
-  <tr>
-    <td bgcolor="#555555">($seeds{$round1[3]}) $teams{$round1[3]} $pick_syms{$round1[3]} - $tscores{"r1$round1[3]"}</td>
-    <td></td>
-    <td bgcolor="#aaaaaa"></td>
-  </tr>
-
-  <tr>
-    <td></td>
-    <td></td>
-    <td bgcolor="#aaaaaa"></td>
-    <td bgcolor="#dddddd">($seeds{$round4[0]}) $teams{$round4[0]} $pick_syms{$round4[0]} - $tscores{"r4$round4[0]"}</td>
-  </tr>
-
-  <tr>
-    <td bgcolor="#555555">($seeds{$round1[4]}) $teams{$round1[4]} $pick_syms{$round1[4]} - $tscores{"r1$round1[4]"}</td>
-    <td></td>
-    <td bgcolor="#aaaaaa"></td>
-    <td bgcolor="#dddddd"></td>
-  </tr>
-  <tr>
-    <td bgcolor="#555555"></td>
-    <td bgcolor="#777777">($seeds{$round2[2]}) $teams{$round2[2]} $pick_syms{$round2[2]} - $tscores{"r2$round2[2]"}</td>
-    <td bgcolor="#aaaaaa"></td>
-    <td bgcolor="#dddddd"></td>
-  </tr>
-  <tr>
-    <td bgcolor="#555555">($seeds{$round1[5]}) $teams{$round1[5]} $pick_syms{$round1[5]} - $tscores{"r1$round1[5]"}</td>
-    <td bgcolor="#777777"></td>
-    <td bgcolor="#aaaaaa"></td>
-    <td bgcolor="#dddddd"></td>
-  </tr>
-
-  <tr>
-    <td></td>
-    <td bgcolor="#777777"></td>
-    <td bgcolor="#aaaaaa">($seeds{$round3[1]}) $teams{$round3[1]} $pick_syms{$round3[1]} - $tscores{"r3$round3[1]"}</td>
-    <td bgcolor="#dddddd"></td>
-  </tr>
-
-  <tr>
-    <td bgcolor="#555555">($seeds{$round1[6]}) $teams{$round1[6]} $pick_syms{$round1[6]} - $tscores{"r1$round1[6]"}</td>
-    <td bgcolor="#777777"></td>
-    <td></td>
-    <td bgcolor="#dddddd"></td>
-  </tr>
-  <tr>
-    <td bgcolor="#555555"></td>
-    <td bgcolor="#777777">($seeds{$round2[3]}) $teams{$round2[3]} $pick_syms{$round2[3]} - $tscores{"r2$round2[3]"}</td>
-    <td></td>
-    <td bgcolor="#dddddd"></td>
-  </tr>
-  <tr>
-    <td bgcolor="#555555">($seeds{$round1[7]}) $teams{$round1[7]} $pick_syms{$round1[7]} - $tscores{"r1$round1[7]"}</td>
-    <td></td>
-    <td></td>
-    <td bgcolor="#dddddd"></td>
-  </tr>
-
-  <tr>
-    <td></td>
-    <td></td>
-    <td></td>
-    <td bgcolor="#dddddd"></td>
-    <td bgcolor="#eeeeee">($seeds{$dwinner}) $teams{$dwinner} $pick_syms{$dwinner}</td>
-  </tr>
-
-  <tr>
-    <td bgcolor="#555555">($seeds{$round1[8]}) $teams{$round1[8]} $pick_syms{$round1[8]} - $tscores{"r1$round1[8]"}</td>
-    <td></td>
-    <td></td>
-    <td bgcolor="#dddddd"></td>
-  </tr>
-  <tr>
-    <td bgcolor="#555555"></td>
-    <td bgcolor="#777777">($seeds{$round2[4]}) $teams{$round2[4]} $pick_syms{$round2[4]} - $tscores{"r2$round2[4]"}</td>
-    <td></td>
-    <td bgcolor="#dddddd"></td>
-  </tr>
-  <tr>
-    <td bgcolor="#555555">($seeds{$round1[9]}) $teams{$round1[9]} $pick_syms{$round1[9]} - $tscores{"r1$round1[9]"}</td>
-    <td bgcolor="#777777"></td>
-    <td></td>
-    <td bgcolor="#dddddd"></td>
-  </tr>
-
-  <tr>
-    <td></td>
-    <td bgcolor="#777777"></td>
-    <td bgcolor="#aaaaaa">($seeds{$round3[2]}) $teams{$round3[2]} $pick_syms{$round3[2]} - $tscores{"r3$round3[2]"}</td>
-    <td bgcolor="#dddddd"></td>
-  </tr>
-
-  <tr>
-    <td bgcolor="#555555">($seeds{$round1[10]}) $teams{$round1[10]} $pick_syms{$round1[10]} - $tscores{"r1$round1[10]"}</td>
-    <td bgcolor="#777777"></td>
-    <td bgcolor="#aaaaaa"></td>
-    <td bgcolor="#dddddd"></td>
-  </tr>
-  <tr>
-    <td bgcolor="#555555"></td>
-    <td bgcolor="#777777">($seeds{$round2[5]}) $teams{$round2[5]} $pick_syms{$round2[5]} - $tscores{"r2$round2[5]"}</td>
-    <td bgcolor="#aaaaaa"></td>
-    <td bgcolor="#dddddd"></td>
-  </tr>
-  <tr>
-    <td bgcolor="#555555">($seeds{$round1[11]}) $teams{$round1[11]} $pick_syms{$round1[11]} - $tscores{"r1$round1[11]"}</td>
-    <td></td>
-    <td bgcolor="#aaaaaa"></td>
-    <td bgcolor="#dddddd"></td>
-  </tr>
-
-  <tr>
-    <td></td>
-    <td></td>
-    <td bgcolor="#aaaaaa"></td>
-    <td bgcolor="#dddddd">($seeds{$round4[1]}) $teams{$round4[1]} $pick_syms{$round4[1]} - $tscores{"r4$round4[1]"}</td>
-  </tr>
-
-  <tr>
-    <td bgcolor="#555555">($seeds{$round1[12]}) $teams{$round1[12]} $pick_syms{$round1[12]} - $tscores{"r1$round1[12]"}</td>
-    <td></td>
-    <td bgcolor="#aaaaaa"></td>
-  </tr>
-  <tr>
-    <td bgcolor="#555555"></td>
-    <td bgcolor="#777777">($seeds{$round2[6]}) $teams{$round2[6]} $pick_syms{$round2[6]} - $tscores{"r2$round2[6]"}</td>
-    <td bgcolor="#aaaaaa"></td>
-  </tr>
-  <tr>
-    <td bgcolor="#555555">($seeds{$round1[13]}) $teams{$round1[13]} $pick_syms{$round1[13]} - $tscores{"r1$round1[13]"}</td>
-    <td bgcolor="#777777"></td>
-    <td bgcolor="#aaaaaa"></td>
-  </tr>
-
-  <tr>
-    <td></td>
-    <td bgcolor="#777777"></td>
-    <td bgcolor="#aaaaaa">($seeds{$round3[3]}) $teams{$round3[3]} $pick_syms{$round3[3]} - $tscores{"r3$round3[3]"}</td>
-  </tr>
-
-  <tr>
-    <td bgcolor="#555555">($seeds{$round1[14]}) $teams{$round1[14]} $pick_syms{$round1[14]} - $tscores{"r1$round1[14]"}</td>
-    <td bgcolor="#777777"></td>
-  </tr>
-  <tr>
-    <td bgcolor="#555555"></td>
-    <td bgcolor="#777777">($seeds{$round2[7]}) $teams{$round2[7]} $pick_syms{$round2[7]} - $tscores{"r2$round2[7]"}</td>
-  </tr>
-  <tr>
-    <td bgcolor="#555555">($seeds{$round1[15]}) $teams{$round1[15]} $pick_syms{$round1[15]} - $tscores{"r1$round1[15]"}</td>
-  </tr>
-
-</table>
-
-END
 
    }
 
-      my $twinner = 0;
+      # final four
       for (my $i = 0; $i < 4; $i +=2) {
          my $t1 = $dwinners[$i];
          my $t2 = $dwinners[$i+1];
@@ -685,6 +518,9 @@ END
                push @dwinners, 0;
             }
          } else {
+            # once we get to the final four, we can have equal seeds, which
+            # will always fall into this block, so we need to watch for both
+            # team orderings.
             if ($scores{"$dwinners[$i+1],$dwinners[$i]"}) { # game played
                $scores{"$dwinners[$i+1],$dwinners[$i]"} =~ m|(\d+)\-(\d+)|;
                my ($s2, $s1) = ($1, $2);
@@ -695,6 +531,16 @@ END
                } else { # higher numbered seed wins
                   push @dwinners, $dwinners[$i];
                }
+            } elsif ($scores{"$dwinners[$i],$dwinners[$i+1]"}) { # game played
+               $scores{"$dwinners[$i],$dwinners[$i+1]"} =~ m|(\d+)\-(\d+)|;
+               my ($s1, $s2) = ($1, $2);
+               $tscores{"r6$dwinners[$i]"} = $s1;
+               $tscores{"r6$dwinners[$i+1]"} = $s2;
+               if ($s1 > $s2) { # lower numbered seed wins
+                  push @dwinners, $dwinners[$i];
+               } else { # higher numbered seed wins
+                  push @dwinners, $dwinners[$i+1];
+               }
             } else { # game has not been played
                $tscores{"r6$dwinners[$i]"} = 0;
                $tscores{"r6$dwinners[$i+1]"} = 0;
@@ -703,6 +549,8 @@ END
          }
       }
 
+      # championship round
+      my $twinner = 0;
       my $t1 = $dwinners[4];
       my $t2 = $dwinners[5];
       if ($seeds{$t1} < $seeds{$t2}) {
@@ -738,58 +586,17 @@ END
             $twinner = 0;
          }
       }
-   print <<END;
 
-<h2></h2>
 
-<table border="0" cellspacing="0" cellpadding="2" width="100%">
-  <tr>
-    <th width="20%">Final Four</th>
-    <th width="20%">National Championship</th>
-    <th width="20%">National Champion</th>
-    <th width="20%">National Championship</th>
-    <th width="20%">Final Four</th>
-  </tr>
+$template->param("d1winner" => qq(($seeds{$dwinners[0]}) <a href="team.pl?team=$dwinners[0]">$teams{$dwinners[0]}</a> $pick_syms{$dwinners[0]} - ) . $tscores{"r6$dwinners[0]"});
+$template->param("d5winner" => qq(($seeds{$dwinners[4]}) <a href="team.pl?team=$dwinners[4]">$teams{$dwinners[4]}</a> $pick_syms{$dwinners[4]} - ) . $tscores{"r7$dwinners[4]"});
+$template->param("d2winner" => qq(($seeds{$dwinners[1]}) <a href="team.pl?team=$dwinners[1]">$teams{$dwinners[1]}</a> $pick_syms{$dwinners[1]} - ) . $tscores{"r6$dwinners[1]"});
+$template->param("twinner" => qq(($seeds{$twinner}) <a href="team.pl?team=$twinner">$teams{$twinner}</a> $pick_syms{$twinner}));
+$template->param("d3winner" => qq(($seeds{$dwinners[2]}) <a href="team.pl?team=$dwinners[2]">$teams{$dwinners[2]}</a> $pick_syms{$dwinners[2]} - ) . $tscores{"r6$dwinners[2]"});
+$template->param("d6winner" => qq(($seeds{$dwinners[5]}) <a href="team.pl?team=$dwinners[5]">$teams{$dwinners[5]}</a> $pick_syms{$dwinners[5]} - ) . $tscores{"r7$dwinners[5]"});
+$template->param("d4winner" => qq(($seeds{$dwinners[3]}) <a href="team.pl?team=$dwinners[3]">$teams{$dwinners[3]}</a> $pick_syms{$dwinners[3]} - ) . $tscores{"r6$dwinners[3]"});
 
-  <tr>
-    <td bgcolor="#555555">($seeds{$dwinners[0]}) $teams{$dwinners[0]} $pick_syms{$dwinners[0]} - $tscores{"r6$dwinners[0]"}</td>
-    <td></td>
-    <td></td>
-    <td></td>
-    <td></td>
-  </tr>
-  <tr>
-    <td bgcolor="#555555"></td>
-    <td bgcolor="#777777">($seeds{$dwinners[4]}) $teams{$dwinners[4]} $pick_syms{$dwinners[4]} - $tscores{"r7$dwinners[4]"}</td>
-    <td></td>
-    <td></td>
-    <td></td>
-  </tr>
-  <tr>
-    <td bgcolor="#555555">($seeds{$dwinners[1]}) $teams{$dwinners[1]} $pick_syms{$dwinners[1]} - $tscores{"r6$dwinners[1]"}</td>
-    <td></td>
-    <td bgcolor="#cccccc">($seeds{$twinner}) $teams{$twinner} $pick_syms{$twinner}</td>
-    <td></td>
-    <td bgcolor="#555555">($seeds{$dwinners[2]}) $teams{$dwinners[2]} $pick_syms{$dwinners[2]} - $tscores{"r6$dwinners[2]"}</td>
-  </tr>
-  <tr>
-    <td></td>
-    <td></td>
-    <td></td>
-    <td bgcolor="#777777">($seeds{$dwinners[5]}) $teams{$dwinners[5]} $pick_syms{$dwinners[5]} - $tscores{"r7$dwinners[5]"}</td>
-    <td bgcolor="#555555"></td>
-  </tr>
-  <tr>
-    <td></td>
-    <td></td>
-    <td></td>
-    <td></td>
-    <td bgcolor="#555555">($seeds{$dwinners[3]}) $teams{$dwinners[3]} $pick_syms{$dwinners[3]} - $tscores{"r6$dwinners[3]"}</td>
-  </tr>
-
-</table>
-
-END
+   print $template->output;
 
    # Disconnect, even though it isn't really necessary
    $dbh->disconnect;

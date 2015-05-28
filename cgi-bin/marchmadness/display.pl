@@ -1,30 +1,12 @@
 #!/usr/bin/perl -wT
 # This is display.pl, which displays standing info
-#
-# Copyright (C) 2004 Russ Burdick, grub@extrapolation.net
-#
-# This file is part of tournament.
-#
-# tournament is free software; you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
-# (at your option) any later version.
-#
-# tournament is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with tournament; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
-#
 
 use strict;
 use diagnostics;
 use CGI;
 use CGI::Carp qw(fatalsToBrowser);
 use DBI;
+use HTTP::Date;
 
 use lib qw(.);
 use MMConstants;
@@ -40,6 +22,7 @@ my %players;
 my %seeds;
 my %dids;
 my %wins;
+my %pwins;
 my %elims;
 my %scores;
 my %ranks;
@@ -47,6 +30,15 @@ my %wcwins;
 my %wcscores;
 my @games;
 my %pick_syms;
+
+sub sortByRank
+{
+             $scores{$b} <=> $scores{$a}
+                         ||
+              $pwins{$b} <=> $pwins{$a}
+                         ||
+    $players{$a}->{name} cmp $players{$b}->{name};
+}
 
 # ------------------------------------------------------------
 # Create an instance of CGI
@@ -60,17 +52,18 @@ print $query->header("text/html");
 if (($query->request_method eq "GET") && ($tid == 0)) {
 
    print $query->start_html(-title => "choose a tournament",
+                         -meta => { 'viewport' => "width=320; initial-scale=1.0;" },
                             -bgcolor => "#FFFFFF");
 
    print qq(<form method="post" action="display.pl">\n);
 
    # ------------------------------------------------------------
    # Connect to the database
-   my $dbh = DBI->connect("DBI:mysql:$dbdatabase:$dbserver:$dbport",
-                          $dbusername, $dbpassword);
+   my $dbh = DBI->connect($dsn, $dbusername, $dbpassword);
    die "DBI error from connect: ", $DBI::errstr unless $dbh;
 
    my $sql = "SELECT * FROM tournaments";
+   $sql .= " ORDER BY year DESC";
 
    # Send the query
    my $sth = $dbh->prepare($sql);
@@ -105,19 +98,23 @@ if (($query->request_method eq "GET") && ($tid == 0)) {
 
    print "</form>\n";
 
+   # Disconnect, even though it isn't really necessary
+   $dbh->disconnect;
+
 } elsif ((($query->request_method eq "POST") && ($tid != 0)) ||
          (($query->request_method eq "GET") && ($tid != 0))) {
 
    my $tname;
    my $tupdate;
+   my $tcutoff;
 
    print $query->start_html(-title => "tournament standings",
+                         -meta => { 'viewport' => "width=320; initial-scale=1.0;" },
                             -bgcolor => "#FFFFFF");
 
    # ------------------------------------------------------------
    # Connect to the database
-   my $dbh = DBI->connect("DBI:mysql:$dbdatabase:$dbserver:$dbport",
-                          $dbusername, $dbpassword);
+   my $dbh = DBI->connect($dsn, $dbusername, $dbpassword);
    die "DBI error from connect: ", $DBI::errstr unless $dbh;
 
    my $sql = "SELECT * FROM players";
@@ -166,6 +163,7 @@ if (($query->request_method eq "GET") && ($tid == 0)) {
 
       $tname = "$row->{name}, $row->{year}";
       $tupdate = $row->{lastupdate};
+      $tcutoff = $row->{cutoff};
    }
 
    # Finish that database call
@@ -235,7 +233,10 @@ if (($query->request_method eq "GET") && ($tid == 0)) {
                   my $row3;
                   $pick_syms{$row2->{id}} = "";
                   while ($row3 = $sth3->fetchrow_hashref) {
-                     $pick_syms{$row2->{id}} .= $players{$row3->{playerid}}->{symbol};
+                     if (!($pick_syms{$row2->{id}} =~ /$players{$row3->{playerid}}->{symbol}/))
+                     {
+                        $pick_syms{$row2->{id}} .= $players{$row3->{playerid}}->{symbol};
+                     }
                   }
                }
 
@@ -334,58 +335,81 @@ if (($query->request_method eq "GET") && ($tid == 0)) {
             if (!$wins{$row->{teamid}}) { $wins{$row->{teamid}} = 0; }
             if (!$wcwins{$pid}) { $wcwins{$pid} = 0; }
             if (!$wcscores{$pid}) { $wcscores{$pid} = 0; }
-            my $score = ($seeds{$row->{teamid}} + 4) * $wins{$row->{teamid}};
-            $tscore += $score;
-            $twins += $wins{$row->{teamid}};
-            if ($row->{wildcard}) {
+            my $score = 0;
+            if ($row->{wildcard} == 2)
+            {
+               if ($wins{$row->{teamid}} == 6)
+               {
+                  $score = ($seeds{$row->{teamid}} + 4) * 5;
+                  $tscore += $score;
+               }
+            }
+            else
+            {
+               $score = ($seeds{$row->{teamid}} + 4) * $wins{$row->{teamid}};
+               $tscore += $score;
+               $twins += $wins{$row->{teamid}};
+            }
+
+            if ($row->{wildcard} == 1) {
                $wcwins{$pid} += $wins{$row->{teamid}};
                $wcscores{$pid} += $score;
             }
          }
          $scores{$pid} = $tscore;
+         $pwins{$pid}  = $twins;
       }
 
       # Finish that database call
       $sth->finish;
    }
 
-   my $i = 0;
-   foreach my $pid (sort { $scores{$b} <=> $scores{$a} } keys %scores) {
-      $i++;
-      $ranks{$pid} = $i;
-   }
+#   my $i = 0;
+#   foreach my $pid (sort { $scores{$b} <=> $scores{$a} } keys %scores) {
+#      $i++;
+#      $ranks{$pid} = $i;
+#   }
+   my $tmphashref = &rank_players(\%scores);
+   %ranks = %{$tmphashref};
 
    print <<END;
 <h2>$tname</h2>
 
 <p>* indicates team was a wildcard choice.<br>
+# indicates team was a bonus "winner" choice.<br>
 <strike>team</strike> indicates a team which has been eliminated.<br>
 Last Updated $tupdate</p>
+<p>Pick Selection Cutoff $tcutoff</p>
 
-<p>Rules: pick 2 teams from each region and 2 additional wildcard teams.
-when a team wins you get a score equal to their seed+4 (so a win by a 3
-seed would give 7 points). person with the highest total score at the
-end of the tournament wins.</p>
+<p>Rules: pick 2 teams from each region and 4 additional wildcard teams.  when
+a team wins you get a score equal to their seed+4 (so a win by a 3 seed would
+give 7 points). the "bonus" winner pick will give <b>no points</b> through the
+individual games but will give a bonus of (seed + 4)*5 if they win the
+tournament (so a win by a 3 seed would give 35 bonus points). person with the
+highest total score at the end of the tournament wins.</p>
 
 <p><a href="bracket.pl?tournament=$tid">view brackets</a></p>
 
 <table border="1">
   <tr>
-    <th>Rank</th>
-    <th>Name</th>
-    <th>Picks</th>
-    <th>Total Wins /<br>Wildcard Wins</th>
-    <th>Total Score /<br>Wildcard Score</th>
+    <th width="5%">Rank</th>
+    <th width="5%">Name</th>
+    <th width="70%">Picks</th>
+    <th width="10%">Total Wins /<br>Wildcard Wins</th>
+    <th width="10%">Total Score /<br>Wildcard Score</th>
   </tr>
 END
 
-   foreach my $pid (keys %players) {
+   foreach my $pid (sort sortByRank keys %players) {
       my $tscore = 0;
       my $twins = 0;
 
-      $sql = "SELECT * FROM picks ";
-      $sql .= "WHERE tourneyid = " . $dbh->quote($tid);
-      $sql .= " AND playerid = " . $dbh->quote($pid);
+      $sql = "SELECT p.* FROM picks AS p, teams AS t, divisions AS d ";
+      $sql .= "WHERE p.tourneyid = " . $dbh->quote($tid);
+      $sql .= " AND p.playerid = " . $dbh->quote($pid);
+      $sql .= " AND p.teamid = t.id";
+      $sql .= " AND t.divisionid = d.id";
+      $sql .= " ORDER BY p.wildcard, d.position, t.seed";
 
       # Send the query
       $sth = $dbh->prepare($sql);
@@ -404,33 +428,76 @@ END
     <td valign="top" align="center">$ranks{$pid}</td>
     <td valign="top">$players{$pid}->{name}</td>
     <td width="300">
+END
 
+if (pastCutoff($tcutoff))
+{
+
+         print <<END;
 <table border="1" width="100%">
-  <tr>
-    <th width="55%">Team</th>
-    <th width="15%">Seed</th>
-    <th width="15%">Wins</th>
-    <th width="15%">Score</th>
+  <tr  bgcolor="#eeeeee">
+    <th width="70%">Team</th>
+    <th width="10%">Seed</th>
+    <th width="10%">Wins</th>
+    <th width="10%">Score</th>
   </tr>
 END
 
+         my $i = 1;
          # Iterate through artist IDs and names
          my $row;
          while ($row = $sth->fetchrow_hashref) {
 
-            my $score = ($seeds{$row->{teamid}} + 4) * $wins{$row->{teamid}};
-            $tscore += $score;
-            $twins += $wins{$row->{teamid}};
+            my $score = 0;
+            if ($row->{wildcard} == 2)
+            {
+               if ($wins{$row->{teamid}} == 6)
+               {
+                  $score = ($seeds{$row->{teamid}} + 4) * 5;
+                  $tscore += $score;
+               }
+            }
+            else
+            {
+               $score = ($seeds{$row->{teamid}} + 4) * $wins{$row->{teamid}};
+               $tscore += $score;
+               $twins += $wins{$row->{teamid}};
+            }
 
-            print qq(  <tr>\n);
+            if ($i++ % 2 == 0)
+            {
+               print qq(  <tr bgcolor="#eeeeee">\n);
+            }
+            else
+            {
+               print qq(  <tr>\n);
+            }
             print qq(    <td>);
             if ($elims{$row->{teamid}}) { print qq(<strike>); }
-            if ($row->{wildcard}) { print "*"; }
-            print $teams{$row->{teamid}};
+            if ($row->{wildcard} == 1) { print "*"; }
+            elsif ($row->{wildcard} == 2) { print "#"; }
+            print qq(<a href="team.pl?team=$row->{teamid}">) .
+                  $teams{$row->{teamid}} . "</a>";
             if ($elims{$row->{teamid}}) { print qq(</strike>); }
             print qq(</td>\n);
             print qq(    <td align="center">$seeds{$row->{teamid}}</td>\n);
-            print qq(    <td align="center">$wins{$row->{teamid}}</td>\n);
+#            if ($row->{wildcard} == 2)
+#            {
+#               print qq(    <td align="center">);
+#               if ($wins{$row->{teamid}} == 6)
+#               {
+#                  print "1";
+#               }
+#               else
+#               {
+#                  print "0";
+#               }
+#               print qq(</td>\n);
+#            }
+#            else
+#            {
+               print qq(    <td align="center">$wins{$row->{teamid}}</td>\n);
+#            }
             print qq(    <td align="center">$score</td>\n);
             print qq(  </tr>\n);
 
@@ -438,7 +505,14 @@ END
 
          print <<END;
 </table>
+END
+}
+else
+{
+   print "picks have been entered - not visible until tipoff";
+}
 
+         print <<END;
     </td>
     <td valign="top" align="center">$twins / $wcwins{$pid}</td>
     <td valign="top" align="center">$tscore / $wcscores{$pid}</td>
@@ -457,7 +531,7 @@ END
 
    print qq{<p>( };
    my $j = keys %players;
-   foreach my $play (keys %players) {
+   foreach my $play (sort { $players{$a}->{name} cmp $players{$b}->{name} } keys %players) {
       print qq($players{$play}->{name}=$players{$play}->{symbol});
       if ($j != 1) { print ", "; }
       $j--;
@@ -480,3 +554,29 @@ END
 
 print $query->end_html;
 
+my $rank_players;
+sub rank_players
+{
+   my $scores = shift;
+   my @ranked;
+   my %rankh;
+
+   foreach my $pid (sort { $scores->{$b} <=> $scores->{$a} } keys %{scores})
+   {
+      push @ranked, $pid;
+   }
+
+   my $i = 1;
+   $rankh{$ranked[0]} = 1;
+   for (my $j = 1; $j < @ranked; $j++)
+   {
+      if ($scores->{$ranked[$j]} != $scores->{$ranked[$j - 1]})
+      {
+         # only increment rank if higher score.
+         $i++;
+      }
+      $rankh{$ranked[$j]} = $i;
+   }
+
+   return \%rankh;
+}

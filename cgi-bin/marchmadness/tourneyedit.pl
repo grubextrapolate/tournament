@@ -1,24 +1,5 @@
 #!/usr/bin/perl -wT
 # This is tourneyedit.pl, which edits tournament info
-#
-# Copyright (C) 2004 Russ Burdick, grub@extrapolation.net
-#
-# This file is part of tournament.
-#
-# tournament is free software; you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
-# (at your option) any later version.
-#
-# tournament is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with tournament; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
-#
 
 use strict;
 use diagnostics;
@@ -52,11 +33,10 @@ if ($query->request_method eq "GET") {
 
    # ------------------------------------------------------------
    # Connect to the database
-   my $dbh = DBI->connect("DBI:mysql:$dbdatabase:$dbserver:$dbport",
-                          $dbusername, $dbpassword);
+   my $dbh = DBI->connect($dsn, $dbusername, $dbpassword);
    die "DBI error from connect: ", $DBI::errstr unless $dbh;
 
-   my $sql = "SELECT * FROM tournaments ORDER BY year";
+   my $sql = "SELECT * FROM tournaments ORDER BY year DESC";
 
    # Send the query
    my $sth = $dbh->prepare($sql);
@@ -125,8 +105,7 @@ if ($query->request_method eq "GET") {
 
          # ------------------------------------------------------------
          # Connect to the database
-         my $dbh = DBI->connect("DBI:mysql:$dbdatabase:$dbserver:$dbport",
-                                $dbusername, $dbpassword);
+         my $dbh = DBI->connect($dsn, $dbusername, $dbpassword);
          die "DBI error from connect: ", $DBI::errstr unless $dbh;
 
          my $sql = "INSERT INTO tournaments SET ";
@@ -161,8 +140,7 @@ if ($query->request_method eq "GET") {
 
          # ------------------------------------------------------------
          # Connect to the database
-         my $dbh = DBI->connect("DBI:mysql:$dbdatabase:$dbserver:$dbport",
-                                $dbusername, $dbpassword);
+         my $dbh = DBI->connect($dsn, $dbusername, $dbpassword);
          die "DBI error from connect: ", $DBI::errstr unless $dbh;
 
          my $sql = "DELETE FROM tournaments WHERE ";
@@ -197,8 +175,7 @@ if ($query->request_method eq "GET") {
 
          # ------------------------------------------------------------
          # Connect to the database
-         my $dbh = DBI->connect("DBI:mysql:$dbdatabase:$dbserver:$dbport",
-                                $dbusername, $dbpassword);
+         my $dbh = DBI->connect($dsn, $dbusername, $dbpassword);
          die "DBI error from connect: ", $DBI::errstr unless $dbh;
 
          my $sql = "SELECT * FROM tournaments WHERE ";
@@ -238,37 +215,16 @@ if ($query->request_method eq "GET") {
                                             -override => 1,
                                             -size => 6,
                                             -maxlength => 4) . "<br>\n";
-
-         my ($date_half, $time_half) = split(/ /, $row->{lastupdate});
-         my ($year, $month, $day) = date2ymd($date_half);
-         my ($hour, $min, $ap) = time2hmp($time_half);
-
-         print "last updated: ";
-         print $query->popup_menu(-name => "month",
-                              -default => $months[$month-1],
-                              -override => 1,
-                              -values => \@months);
-         print $query->popup_menu(-name => "day",
-                              -default => $day,
-                              -override => 1,
-                              -values => \@days);
-         print $query->popup_menu(-name => "year",
-                              -default => $year,
-                              -override => 1,
-                              -values => \@years);
-
-         print $query->popup_menu(-name => "hour",
-                              -default => $hour,
-                              -override => 1,
-                              -values => \@hours);
-         print $query->popup_menu(-name => "min",
-                              -default => $min,
-                              -override => 1,
-                              -values => \@mins);
-         print $query->popup_menu(-name => "ap",
-                              -default => $ap,
-                              -override => 1,
-                              -values => \@ap);
+         print "last update: " . $query->textfield(-name => "tlast",
+                                            -default => $row->{lastupdate},
+                                            -override => 1,
+                                            -size => 22,
+                                            -maxlength => 19) . "<br>\n";
+         print "cutoff: " . $query->textfield(-name => "tcut",
+                                            -default => $row->{cutoff},
+                                            -override => 1,
+                                            -size => 22,
+                                            -maxlength => 19) . "<br>\n";
 
          print $query->submit(-name => "submit", -value => "change entry");
          print $query->reset(-value => "reset form");
@@ -288,30 +244,21 @@ if ($query->request_method eq "GET") {
       my $id = $query->param('entryid');
       my $name = $query->param('name');
       my $tyear = $query->param('tyear');
+      my $tlast = $query->param('tlast');
+      my $tcut = $query->param('tcut');
 
-      my $month = $query->param('month');
-      my $day = $query->param('day');
-      my $year = $query->param('year');
-      my $hour = $query->param('hour');
-      my $min = $query->param('min');
-      my $ap = $query->param('ap');
-
-      my $date_half = dmy2date($day, $monthh{$month}, $year);
-      my $time_half = hmp2time($hour, $min, $ap);
-      my $date = $date_half . " " . $time_half;
-
-      if ($id && $name && $tyear && $date) {
+      if ($id && $name && $tyear && $tlast && $tcut) {
 
          # ------------------------------------------------------------
          # Connect to the database
-         my $dbh = DBI->connect("DBI:mysql:$dbdatabase:$dbserver:$dbport",
-                                $dbusername, $dbpassword);
+         my $dbh = DBI->connect($dsn, $dbusername, $dbpassword);
          die "DBI error from connect: ", $DBI::errstr unless $dbh;
 
          my $sql = "UPDATE tournaments SET ";
          $sql .= "name = " . $dbh->quote($name);
          $sql .= ", year = " . $dbh->quote($tyear);
-         $sql .= ", lastupdate = " . $dbh->quote($date);
+         $sql .= ", lastupdate = " . $dbh->quote($tlast);
+         $sql .= ", cutoff = " . $dbh->quote($tcut);
          $sql .=" WHERE id=" . $dbh->quote($id);
 
          # Prepare the query

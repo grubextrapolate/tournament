@@ -1,0 +1,1922 @@
+<html>
+  <head>
+    <title>tournament brackets</title>
+
+<style type="text/css">
+.checkboxes
+{
+   background-color: white;
+   padding: 1;
+   border: 1;
+   vertical-align: center;
+}
+
+.scorebox
+{
+   position: fixed;
+
+   top: 0;
+   left: 50%;
+   width: 400px;
+   margin-left: -200px;
+
+   z-index: 10;
+   border-left: 1px solid black;
+   border-top: 1px solid black;
+   border-right: 3px solid black;
+   border-bottom: 3px solid black;
+   background-color: white;
+}
+
+p
+{
+   margin: 1px;
+
+}
+html, body
+{
+   min-height: 100%;
+}
+body
+{
+   position: relative;
+}
+
+.scorerow
+{
+   display: none;
+}
+.visible
+{
+   display: table-row;
+}
+
+</style>
+  </head>
+
+<script>
+
+// arrays pulled from sql via backend
+// ----------------------------------------------------------------------------
+<TMPL_VAR NAME="jslists">
+
+// globals
+// ----------------------------------------------------------------------------
+allpicks = {};
+counts = { 'div1': 0, 'div2': 0, 'div3': 0, 'div4': 0, 'wc': 0, 'ow': 0 };
+var scoresVisible = true;
+
+// constants
+// ----------------------------------------------------------------------------
+var DEFAULT_PICK    = 0;
+var WILDCARD_PICK   = 1;
+var WINNER_PICK     = 2;
+var maxDivPickCount = 2;
+var maxPickCountWC  = 4;
+var maxPickCountWin = 1;
+
+
+// functions
+// ----------------------------------------------------------------------------
+function sortedkeys(obj)
+{
+   var keys = [];
+   for (var key in obj)
+   {
+      if (obj.hasOwnProperty(key))
+      {
+         keys.push(key);
+      }
+   }
+   keys.sort();
+   return keys;
+}
+
+function toggleScoreCollapse(obj)
+{
+   if (scoresVisible)
+   {
+      obj.innerHTML = "show teams";
+      scoresVisible = false;
+   }
+   else
+   {
+      obj.innerHTML = "hide teams";
+      scoresVisible = true;
+   }
+
+   // rerender the table. it'll set the class such that it's visible/not
+   renderTable();
+
+   return false;
+}
+
+function renderTable()
+{
+
+   var totalWins = 0;
+   var totalScore = 0;
+   var table = document.getElementById('picktable');
+   var rowCount = table.rows.length;
+   if (rowCount > 1)
+      for (; table.rows.length > 1; )
+         table.deleteRow(1);
+
+   var keys = sortedkeys(allpicks);
+   for (var index = 0; index < keys.length; index++)
+   {
+      var pick = allpicks[keys[index]];
+      var rowCount = table.rows.length;
+      var row = table.insertRow(rowCount);
+      row.id = keys[index];
+      if (scoresVisible)
+         row.className = "scorerow visible";
+      else
+         row.className = "scorerow";
+
+      // Division
+      var cell1 = row.insertCell(0);
+      var element1 = document.createElement("p");
+      element1.innerHTML = division_names[pick['div']];
+      cell1.appendChild(element1);
+
+      // Team name
+      var cell2 = row.insertCell(1);
+      var element2 = document.createElement("p");
+      if (pick['type'] == DEFAULT_PICK)
+         element2.innerHTML = pick['name'];
+      else if (pick['type'] == WILDCARD_PICK)
+         element2.innerHTML = "*" + pick['name'];
+      else if (pick['type'] == WINNER_PICK)
+         element2.innerHTML = "#" + pick['name'];
+      cell2.appendChild(element2);
+      var input1 = document.createElement("input");
+      input1.type = "hidden";
+      input1.name = "wildcard";
+      input1.value = pick['type'];
+      cell2.appendChild(input1);
+      var input2 = document.createElement("input");
+      input2.type = "hidden";
+      input2.name = "picks";
+      input2.value = pick['id'];
+      cell2.appendChild(input2);
+
+      // Seed
+      var cell3 = row.insertCell(2);
+      var element3 = document.createElement("p");
+      element3.innerHTML = pick['seed'];
+      element3.align = "center";
+      cell3.appendChild(element3);
+
+      // Wins
+      var cell4 = row.insertCell(3);
+      var element4 = document.createElement("p");
+      element4.innerHTML = pick['wins'];
+      totalWins += +element4.innerHTML;
+      element4.align = "center";
+      cell4.appendChild(element4);
+
+      // Score
+      var cell5 = row.insertCell(4);
+      var element5 = document.createElement("p");
+      if (pick['type'] != WINNER_PICK)
+         element5.innerHTML = (4 + +pick['seed']) * pick['wins'];
+      else if (   pick['type'] == WINNER_PICK
+               && pick['wins'] == 6)
+         element5.innerHTML = (4 + +pick['seed']) * 5;
+      else // winner and not enough wins
+         element5.innerHTML = 0;
+      totalScore += +element5.innerHTML;
+      element5.align = "center";
+      cell5.appendChild(element5);
+
+   }
+
+   // Total row
+   var rowCount = table.rows.length;
+   var row = table.insertRow(rowCount);
+
+   var cell1 = row.insertCell(0);
+   var element1 = document.createElement("p");
+   element1.innerHTML = "Projected Total";
+   element1.align = "right";
+   cell1.colSpan = 3;
+   cell1.appendChild(element1);
+
+   var cell2 = row.insertCell(1);
+   var element2 = document.createElement("p");
+   element2.innerHTML = totalWins;
+   element2.align = "center";
+   cell2.appendChild(element2);
+
+   var cell3 = row.insertCell(2);
+   var element3 = document.createElement("p");
+   element3.innerHTML = totalScore;
+   element3.align = "center";
+   cell3.appendChild(element3);
+
+}
+
+function addPickToTable(id, div, type)
+{
+   var name = teamlist_names_noseed[id];
+   var seed = teamlist_seeds[id];
+   if (seed < 10) seed = "0" + seed;
+   var key  = type + ":" + div + ":" + ":" + seed + ":" + name;
+
+   pickline = {};
+   pickline['name'] = name;
+   pickline['seed'] = +seed;
+   pickline['id']   = id;
+   pickline['type'] = type;
+   pickline['div']  = div;
+   pickline['wins'] = 0;
+
+   // if this item doesn't already exist, add it.
+   if (! allpicks[key])
+   {
+      allpicks[key] = pickline;
+   }
+}
+
+function delPickFromTable(id, div, type)
+{
+   var name = teamlist_names_noseed[id];
+   var seed = teamlist_seeds[id];
+   if (seed < 10) seed = "0" + seed;
+   var key  = type + ":" + div + ":" + ":" + seed + ":" + name;
+
+   // if this item exist, delete it.
+   if (allpicks[key])
+   {
+      delete allpicks[key];
+   }
+}
+
+function incrWins(team)
+{
+   var shortname = team.replace(/\(\d+\) /, "");
+   for (var key in allpicks)
+   {
+      if (allpicks[key]['name'] == shortname)
+      {
+         allpicks[key]['wins']++;
+      }
+   }
+}
+
+function resetWins()
+{
+   for (var key in allpicks)
+   {
+      allpicks[key]['wins'] = 0;
+   }
+}
+
+function resetForm()
+{
+   for (var key in allpicks)
+   {
+      delete allpicks[key];
+   }
+
+   for (var key in counts)
+   {
+      counts[key] = 0;
+   }
+
+   // for all four divisions:
+   for (var dnum = 1; dnum < 5; dnum++)
+   {
+      // Initial round = checkboxes
+      for (var kk = 1; kk <= 16; kk++)
+      {
+         var src    = 'd' + dnum + 'r1g' + kk;
+         var srcWC  = 'd' + dnum + 'r1g' + kk + '_wc';
+         var srcWin = 'd' + dnum + 'r1g' + kk + '_win';
+         document.getElementById(src).checked = false;
+         document.getElementById(srcWC).checked = false;
+         document.getElementById(srcWin).checked = false;
+      }
+      for (var kk = 1; kk <= 8; kk++)
+      {
+         var src    = 'd' + dnum + 'r2g' + kk;
+         document.getElementById(src).options.length = 0;
+      }
+      for (var kk = 1; kk <= 4; kk++)
+      {
+         var src    = 'd' + dnum + 'r3g' + kk;
+         document.getElementById(src).options.length = 0;
+      }
+      for (var kk = 1; kk <= 2; kk++)
+      {
+         var src    = 'd' + dnum + 'r4g' + kk;
+         document.getElementById(src).options.length = 0;
+      }
+   }
+   for (var kk = 1; kk <= 6; kk++)
+   {
+      var src    = 'd' + kk + 'winner';
+      document.getElementById(src).options.length = 0;
+   }
+   for (var kk = 1; kk <= 4; kk++)
+   {
+      document.getElementById('d' + kk + 'winner2').value = "";
+   }
+   document.getElementById('twinner').options.length = 0;
+
+   renderTable();
+}
+
+function sortOptions(id)
+{
+   // copy input list
+   var lb = id;
+
+   // create new array with each entry in VV:Text format, allowing for sort
+   // by seed and then by name
+   arrTexts = new Array();
+   for (var i = 0; i < lb.length; i++)
+   {
+      var val = lb.options[i].value;
+      if (val < 10) val = "0" + val;
+      arrTexts[i] = val + ":" + lb.options[i].text;
+   }
+   arrTexts.sort();
+
+   // now that we have a sorted list in VV:Text format, push this data back
+   // into the original list
+   for (var i = 0; i < lb.length; i++)
+   {
+      el = arrTexts[i].split(':');
+      lb.options[i].value = +el[0]; // +var format forces integer type
+      lb.options[i].text  =  el[1];
+   }
+}
+
+function addOptionIfNotExist(tgt, text, value)
+{
+   var exists = false;
+   var z = document.getElementById(tgt);
+
+   if (   z != null
+       && z.tagName == "SELECT"
+       && z.length < 16)
+   {
+      for (var i = 0; i < z.length; i++)
+      {
+         if (z.options[i].text == text)
+         {
+            exists = true;
+            break;
+         }
+      }
+
+      if (!exists)
+      {
+         var o = document.createElement("option");
+         o.text  = text;
+         o.value = value;
+         z.options.add(o);
+      }
+      sortOptions(z);
+   }
+   else
+   {
+      alert("add: this is not a select! tgt=\"" + tgt + "\", text=\"" + text + "\", value=\"" + value + "\", z=" + z);
+   }
+}
+
+function delOptionIfExist(tgt, text)
+{
+   var z = document.getElementById(tgt);
+
+   if (   z != null
+       && z.tagName == "SELECT"
+       && z.length < 16)
+   {
+      for (var i = 0; i < z.length; i++)
+      {
+         if (z.options[i].text == text)
+         {
+            z.remove(i);
+            break;
+         }
+      }
+   }
+   else
+   {
+      alert("del: this is not a select! tgt=\"" + tgt + "\", text=\"" + text + "\", z=" + z);
+   }
+}
+
+function calc(obj)
+{
+   var totalScore      = 0;
+   var winner          = "";
+   var winnerOnly      = true;
+
+   resetWins();
+
+   // for all four divisions:
+   for (var dnum = 1; dnum < 5; dnum++)
+   {
+      // Initial round = checkboxes
+      for (var i = 0; i < 16; i++)
+      {
+         var kk     = i + 1;
+         var jj     = Math.floor(i/2) + 1;
+         var src    = 'd' + dnum + 'r1g' + kk;
+         var srcWC  = 'd' + dnum + 'r1g' + kk + '_wc';
+         var srcWin = 'd' + dnum + 'r1g' + kk + '_win';
+         var tgt    = 'd' + dnum + 'r2g' + jj;
+         var id     = +document.getElementById(src + '_id').value;
+         var type   = 0;
+
+         if (   document.getElementById(src).checked
+             && document.getElementById(srcWC).checked)
+         {
+            obj.checked = false;
+            alert("error! can't pick a team as both a regular and wildcard!");
+            return;
+         }
+
+         // a RP checkbox was just changed
+         if (obj.id == src)
+         {
+            // box was checked
+            if (obj.checked)
+            {
+               if (counts['div' + dnum] < maxDivPickCount)
+               {
+                  addPickToTable(id, dnum, DEFAULT_PICK);
+                  type = DEFAULT_PICK;
+                  counts['div' + dnum]++;
+               }
+               else
+               {
+                  obj.checked = false;
+                  alert("too many picks in this division! picks="
+                        + (counts['div' + dnum] + 1) + ", max=" + maxDivPickCount);
+                  return;
+               }
+
+            }
+            // box was unchecked
+            else
+            {
+               counts['div' + dnum]--;
+               delPickFromTable(id, dnum, DEFAULT_PICK);
+
+            }
+         }
+
+         // a WC checkbox was just changed
+         else if (obj.id == srcWC)
+         {
+            // box was checked
+            if (obj.checked)
+            {
+
+               if (counts['wc'] < maxPickCountWC)
+               {
+                  addPickToTable(id, dnum, WILDCARD_PICK);
+                  type = WILDCARD_PICK;
+                  counts['wc']++;
+               }
+               else
+               {
+                  obj.checked = false;
+                  alert("too many wildcard picks! picks="
+                        + (counts['wc'] + 1) + ", max=" + maxPickCountWC);
+                  return;
+               }
+            }
+
+            // box was unchecked
+            else
+            {
+               counts['wc']--;
+               delPickFromTable(id, dnum, WILDCARD_PICK);
+            }
+         }
+
+         // a OW checkbox was just changed
+         else if (obj.id == srcWin)
+         {
+            // box was checked
+            if (obj.checked)
+            {
+               if (counts['ow'] < maxPickCountWin)
+               {
+                  addPickToTable(id, dnum, WINNER_PICK);
+                  counts['ow']++;
+                  type = WINNER_PICK;
+                  winner = teamlist_names[id];
+                  if (   document.getElementById(srcWin).checked
+                      && (   document.getElementById(src).checked
+                          || document.getElementById(srcWC).checked))
+                     winnerOnly = false;
+               }
+               else
+               {
+                  obj.checked = false;
+                  alert("too many winner picks! picks="
+                        + (counts['ow'] + 1) + ", max=" + maxPickCountWin);
+                  return;
+               }
+            }
+            // box was unchecked
+            else
+            {
+               counts['ow']--;
+               delPickFromTable(id, dnum, WINNER_PICK);
+            }
+         }
+
+         // one of the pick checkboxes was checked...
+         if (   document.getElementById(src).checked
+             || document.getElementById(srcWC).checked
+             || document.getElementById(srcWin).checked)
+         {
+
+            addOptionIfNotExist(tgt, teamlist_names[id], teamlist_seeds[id]);
+
+         }
+         // one of the pick checkboxes was unchecked...
+         else
+         {
+            var n  = Math.floor(i/4) + 1;
+            var nn = Math.floor(i/8) + 1;
+            delOptionIfExist(tgt, teamlist_names[id]);
+            delOptionIfExist('d' + dnum + 'r3g' + n, teamlist_names[id]);
+            delOptionIfExist('d' + dnum + 'r4g' + nn, teamlist_names[id]);
+            delOptionIfExist('d' + dnum + 'winner', teamlist_names[id]);
+            delOptionIfExist('d5winner', teamlist_names[id]);
+            delOptionIfExist('d6winner', teamlist_names[id]);
+            delOptionIfExist('twinner', teamlist_names[id]);
+         }
+      }
+
+      document.getElementById('d' + dnum + 'picks').value = maxDivPickCount - counts['div' + dnum];
+
+
+      // round 2
+      for (var i = 0; i < 8; i++)
+      {
+         var kk     = i + 1;
+         var jj     = Math.floor(i/2) + 1;
+         var src    = 'd' + dnum + 'r2g' + kk;
+         var tgt    = 'd' + dnum + 'r3g' + jj;
+         var srcele = document.getElementById(src);
+         if (srcele.length != 0)
+         {
+            var x = srcele.selectedIndex;
+            var y = srcele.options;
+            for (var ii = 0; ii < srcele.length; ii++)
+            {
+               if (ii == x)
+               {
+                  // round 1 scoring
+                  if (   y[ii].text != winner
+                      || !winnerOnly)
+                  {
+                     totalScore += +y[ii].value + 4;
+                  }
+                     incrWins(y[ii].text);
+
+                  addOptionIfNotExist(tgt, y[ii].text, y[ii].value);
+               }
+               else
+               {
+                  var n = Math.floor(i/4) + 1;
+                  delOptionIfExist(tgt, y[ii].text);
+                  delOptionIfExist('d' + dnum + 'r4g' + n, y[ii].text);
+                  delOptionIfExist('d' + dnum + 'winner', y[ii].text);
+                  delOptionIfExist('d5winner', y[ii].text);
+                  delOptionIfExist('d6winner', y[ii].text);
+                  delOptionIfExist('twinner', y[ii].text);
+               }
+            }
+         }
+      }
+
+      // round 3: sweet sixteen
+      for (var i = 0; i < 4; i++)
+      {
+         var kk     = i + 1;
+         var jj     = Math.floor(i/2) + 1;
+         var src    = 'd' + dnum + 'r3g' + kk;
+         var tgt    = 'd' + dnum + 'r4g' + jj;
+         var srcele = document.getElementById(src);
+         if (srcele.length != 0)
+         {
+            var x = srcele.selectedIndex;
+            var y = srcele.options;
+            for (var ii = 0; ii < srcele.length; ii++)
+            {
+               if (ii == x)
+               {
+                  // round 2 scoring
+                  if (   y[ii].text != winner
+                      || !winnerOnly)
+                  {
+                     totalScore += +y[ii].value + 4;
+                  }
+                     incrWins(y[ii].text);
+
+                  addOptionIfNotExist(tgt, y[ii].text, y[ii].value);
+               }
+               else
+               {
+                  delOptionIfExist(tgt, y[ii].text);
+                  delOptionIfExist('d' + dnum + 'winner', y[ii].text);
+                  delOptionIfExist('d5winner', y[ii].text);
+                  delOptionIfExist('d6winner', y[ii].text);
+                  delOptionIfExist('twinner', y[ii].text);
+               }
+            }
+         }
+      }
+
+      // round 4: elite eight
+      for (var i = 0; i < 2; i++)
+      {
+         var kk     = i + 1;
+         var src    = 'd' + dnum + 'r4g' + kk;
+         var tgt    = 'd' + dnum + 'winner';
+         var tgt2   = 'd' + dnum + 'winner2';
+         var srcele = document.getElementById(src);
+         if (srcele.length != 0)
+         {
+            var x = srcele.selectedIndex;
+            var y = srcele.options;
+            for (var ii = 0; ii < srcele.length; ii++)
+            {
+               if (ii == x)
+               {
+                  // round 3 scoring
+                  if (   y[ii].text != winner
+                      || !winnerOnly)
+                  {
+                     totalScore += +y[ii].value + 4;
+                  }
+                     incrWins(y[ii].text);
+
+                  addOptionIfNotExist(tgt, y[ii].text, y[ii].value);
+               }
+               else
+               {
+                  delOptionIfExist(tgt, y[ii].text);
+                  delOptionIfExist('d5winner', y[ii].text);
+                  delOptionIfExist('d6winner', y[ii].text);
+                  delOptionIfExist('twinner', y[ii].text);
+               }
+            }
+         }
+      }
+   }
+   document.getElementById('wcpicks').value  = maxPickCountWC  - counts['wc'];
+   document.getElementById('winpicks').value = maxPickCountWin - counts['ow'];
+
+   // round 5a: final four
+   for (var i = 0; i < 2; i++)
+   {
+      var kk     = i + 1;
+      var src    = 'd' + kk + 'winner';
+      var tgt    = 'd5winner';
+      var srcele = document.getElementById(src);
+      if (srcele.length != 0)
+      {
+         var x = srcele.selectedIndex;
+         var y = srcele.options;
+         for (var ii = 0; ii < srcele.length; ii++)
+         {
+            if (ii == x)
+            {
+               // round 4 scoring
+               if (   y[ii].text != winner
+                   || !winnerOnly)
+               {
+                  totalScore += +y[ii].value + 4;
+               }
+                  incrWins(y[ii].text);
+
+               addOptionIfNotExist(tgt, y[ii].text, y[ii].value);
+               document.getElementById('d' + kk + 'winner2').value = y[ii].text;
+            }
+            else
+            {
+               delOptionIfExist(tgt, y[ii].text);
+               delOptionIfExist('twinner', y[ii].text);
+            }
+         }
+      }
+      else
+      {
+         document.getElementById('d' + kk + 'winner2').value = "";
+      }
+   }
+
+   // round 5b: final four
+   for (var i = 2; i < 4; i++)
+   {
+      var kk     = i + 1;
+      var src    = 'd' + kk + 'winner';
+      var tgt    = 'd6winner';
+      var srcele = document.getElementById(src);
+      if (srcele.length != 0)
+      {
+         var x = srcele.selectedIndex;
+         var y = srcele.options;
+         for (var ii = 0; ii < srcele.length; ii++)
+         {
+            if (ii == x)
+            {
+               // round 4 scoring
+               if (   y[ii].text != winner
+                   || !winnerOnly)
+               {
+                  totalScore += +y[ii].value + 4;
+               }
+                  incrWins(y[ii].text);
+
+               addOptionIfNotExist(tgt, y[ii].text, y[ii].value);
+               document.getElementById('d' + kk + 'winner2').value = y[ii].text;
+            }
+            else
+            {
+               delOptionIfExist(tgt, y[ii].text);
+               delOptionIfExist('twinner', y[ii].text);
+            }
+         }
+      }
+      else
+      {
+         document.getElementById('d' + kk + 'winner2').value = "";
+      }
+   }
+
+   // round 6: championship
+   for (var i = 4; i < 6; i++)
+   {
+      var kk     = i + 1;
+      var src    = 'd' + kk + 'winner';
+      var tgt    = 'twinner';
+      var srcele = document.getElementById(src);
+      if (srcele.length != 0)
+      {
+         var x = srcele.selectedIndex;
+         var y = srcele.options;
+         for (var ii = 0; ii < srcele.length; ii++)
+         {
+            if (ii == x)
+            {
+               // round 5 scoring
+               if (   y[ii].text != winner
+                   || !winnerOnly)
+               {
+                  totalScore += +y[ii].value + 4;
+               }
+                  incrWins(y[ii].text);
+
+               addOptionIfNotExist(tgt, y[ii].text, y[ii].value);
+            }
+            else
+            {
+               delOptionIfExist(tgt, y[ii].text);
+            }
+         }
+      }
+   }
+   // scoring for the championship game (round 6)
+   for (var i = 0; i < 1; i++)
+   {
+      var srcele = document.getElementById('twinner');
+      if (srcele.length != 0)
+      {
+         var x = srcele.selectedIndex;
+         var y = srcele.options;
+         if (   y[x].text != winner
+             || !winnerOnly)
+         {
+            totalScore += +y[x].value + 4;
+         }
+
+         if (y[x].text == winner)
+         {
+            totalScore += (+y[x].value + 4)*5;
+         }
+            incrWins(y[x].text);
+      }
+   }
+
+   renderTable();
+
+   if (   maxDivPickCount == counts['div1']
+       && maxDivPickCount == counts['div2']
+       && maxDivPickCount == counts['div3']
+       && maxDivPickCount == counts['div4']
+       && maxPickCountWC == counts['wc']
+       && maxPickCountWin == counts['ow'])
+   {
+      document.getElementById('submit').disabled = false;
+//      document.getElementById('counttable').display = 'none';
+   }
+   else
+   {
+      document.getElementById('submit').disabled = true;
+//      document.getElementById('counttable').display = 'block';
+   }
+}
+
+</script>
+
+  <body vlink="#000000" alink="#000000" link="#000000">
+<div class="main">
+<form method="POST" action="newpicks.pl">
+
+   <h2><TMPL_VAR NAME="tname"></h2>
+   <p>Pick Cutoff <TMPL_VAR NAME="tcutoff"></p>
+   <p>number in round brackets is seed.<br/>
+   RP = regular pick, WC = wildcard pick, OW = overall winner pick.</p>
+
+<div class="scorebox" align="center">
+<table border="1" cellspacing="0" cellpadding="1" id="counttable">
+<tr><th rowspan="2"><p>Picks<br/>Left</p></th><th><TMPL_VAR NAME="d1name"></th><th><TMPL_VAR NAME="d2name"></th><th><TMPL_VAR NAME="d3name"></th><th><TMPL_VAR NAME="d4name"></th><th>Wild</th><th>Winner</th></tr>
+<tr><td align="center"><input type="text" id="d1picks" name="d1picks" value="2" size="1" readonly/></td>
+<td align="center"><input type="text" id="d2picks" name="d2picks" value="2" size="1" readonly/></td>
+<td align="center"><input type="text" id="d3picks" name="d3picks" value="2" size="1" readonly/></td>
+<td align="center"><input type="text" id="d4picks" name="d4picks" value="2" size="1" readonly/></td>
+<td align="center"><input type="text" id="wcpicks" name="wcpicks" value="4" size="1" readonly/></td>
+<td align="center"><input type="text" id="winpicks" name="winpicks" value="1" size="1" readonly/></td></tr>
+</table>
+<table border="1" cellspacing="0" cellpadding="1" id="picktable" margin="0">
+<tr><th>Div</th><th>Team</th><th>Seed</th><th>Wins</th><th>Score</th></tr>
+<tr><td colspan="3" align="right">Projected Total</td><td>0</td><td>0</td></tr>
+</table>
+<p>
+<a href="#" onclick="return toggleScoreCollapse(this);">hide teams</a>
+<input type="hidden" name="tourneyid" value="<TMPL_VAR NAME="tid">" />
+<input type="hidden" name="playerid" value="<TMPL_VAR NAME="pid">" />
+<input type="reset" name="reset" value="reset" onclick="resetForm();" />
+<input type="submit" id="submit" name="submit" value="save picks" disabled /></p>
+</div>
+
+<h3><TMPL_VAR NAME="d1name"></h3>
+
+<table border="0" cellspacing="0" cellpadding="2" width="100%">
+  <tr>
+    <th width="20%">First Round</th>
+    <th width="20%">Second Round</th>
+    <th width="20%">Sweet Sixteen</th>
+    <th width="20%">Elite Eight</th>
+    <th width="20%">Final Four</th>
+  </tr>
+
+  <tr>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d1r1g1"></td>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td bgcolor="#555555"></td>
+    <td bgcolor="#777777"><TMPL_VAR NAME="d1r2g1"></td>
+    <td></td>
+    <td></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d1r1g2"></td>
+    <td bgcolor="#777777"></td>
+    <td></td>
+    <td></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td bgcolor="#777777"></td>
+    <td bgcolor="#aaaaaa"><TMPL_VAR NAME="d1r3g1"></td>
+    <td></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d1r1g3"></td>
+    <td bgcolor="#777777"></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td bgcolor="#555555"></td>
+    <td bgcolor="#777777"><TMPL_VAR NAME="d1r2g2"></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d1r1g4"></td>
+    <td></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td bgcolor="#dddddd"><TMPL_VAR NAME="d1r4g1"></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d1r1g5"></td>
+    <td></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td bgcolor="#555555"></td>
+    <td bgcolor="#777777"><TMPL_VAR NAME="d1r2g3"></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d1r1g6"></td>
+    <td bgcolor="#777777"></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td bgcolor="#777777"></td>
+    <td bgcolor="#aaaaaa"><TMPL_VAR NAME="d1r3g2"></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d1r1g7"></td>
+    <td bgcolor="#777777"></td>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td bgcolor="#555555"></td>
+    <td bgcolor="#777777"><TMPL_VAR NAME="d1r2g4"></td>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d1r1g8"></td>
+    <td></td>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td bgcolor="#eeeeee"><TMPL_VAR NAME="d1winner"></td>
+  </tr>
+
+  <tr>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d1r1g9"></td>
+    <td></td>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td bgcolor="#555555"></td>
+    <td bgcolor="#777777"><TMPL_VAR NAME="d1r2g5"></td>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d1r1g10"></td>
+    <td bgcolor="#777777"></td>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td bgcolor="#777777"></td>
+    <td bgcolor="#aaaaaa"><TMPL_VAR NAME="d1r3g3"></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d1r1g11"></td>
+    <td bgcolor="#777777"></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td bgcolor="#555555"></td>
+    <td bgcolor="#777777"><TMPL_VAR NAME="d1r2g6"></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d1r1g12"></td>
+    <td></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td bgcolor="#dddddd"><TMPL_VAR NAME="d1r4g2"></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d1r1g13"></td>
+    <td></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td bgcolor="#555555"></td>
+    <td bgcolor="#777777"><TMPL_VAR NAME="d1r2g7"></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d1r1g14"></td>
+    <td bgcolor="#777777"></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td bgcolor="#777777"></td>
+    <td bgcolor="#aaaaaa"><TMPL_VAR NAME="d1r3g4"></td>
+    <td></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d1r1g15"></td>
+    <td bgcolor="#777777"></td>
+    <td></td>
+    <td></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td bgcolor="#555555"></td>
+    <td bgcolor="#777777"><TMPL_VAR NAME="d1r2g8"></td>
+    <td></td>
+    <td></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d1r1g16"></td>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td></td>
+  </tr>
+
+</table>
+
+<hr>
+
+<h3><TMPL_VAR NAME="d2name"></h3>
+
+<table border="0" cellspacing="0" cellpadding="2" width="100%">
+  <tr>
+    <th width="20%">First Round</th>
+    <th width="20%">Second Round</th>
+    <th width="20%">Sweet Sixteen</th>
+    <th width="20%">Elite Eight</th>
+    <th width="20%">Final Four</th>
+  </tr>
+
+  <tr>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d2r1g1"></td>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td bgcolor="#555555"></td>
+    <td bgcolor="#777777"><TMPL_VAR NAME="d2r2g1"></td>
+    <td></td>
+    <td></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d2r1g2"></td>
+    <td bgcolor="#777777"></td>
+    <td></td>
+    <td></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td bgcolor="#777777"></td>
+    <td bgcolor="#aaaaaa"><TMPL_VAR NAME="d2r3g1"></td>
+    <td></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d2r1g3"></td>
+    <td bgcolor="#777777"></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td bgcolor="#555555"></td>
+    <td bgcolor="#777777"><TMPL_VAR NAME="d2r2g2"></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d2r1g4"></td>
+    <td></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td bgcolor="#dddddd"><TMPL_VAR NAME="d2r4g1"></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d2r1g5"></td>
+    <td></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td bgcolor="#555555"></td>
+    <td bgcolor="#777777"><TMPL_VAR NAME="d2r2g3"></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d2r1g6"></td>
+    <td bgcolor="#777777"></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td bgcolor="#777777"></td>
+    <td bgcolor="#aaaaaa"><TMPL_VAR NAME="d2r3g2"></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d2r1g7"></td>
+    <td bgcolor="#777777"></td>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td bgcolor="#555555"></td>
+    <td bgcolor="#777777"><TMPL_VAR NAME="d2r2g4"></td>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d2r1g8"></td>
+    <td></td>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td bgcolor="#eeeeee"><TMPL_VAR NAME="d2winner"></td>
+  </tr>
+
+  <tr>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d2r1g9"></td>
+    <td></td>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td bgcolor="#555555"></td>
+    <td bgcolor="#777777"><TMPL_VAR NAME="d2r2g5"></td>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d2r1g10"></td>
+    <td bgcolor="#777777"></td>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td bgcolor="#777777"></td>
+    <td bgcolor="#aaaaaa"><TMPL_VAR NAME="d2r3g3"></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d2r1g11"></td>
+    <td bgcolor="#777777"></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td bgcolor="#555555"></td>
+    <td bgcolor="#777777"><TMPL_VAR NAME="d2r2g6"></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d2r1g12"></td>
+    <td></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td bgcolor="#dddddd"><TMPL_VAR NAME="d2r4g2"></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d2r1g13"></td>
+    <td></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td bgcolor="#555555"></td>
+    <td bgcolor="#777777"><TMPL_VAR NAME="d2r2g7"></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d2r1g14"></td>
+    <td bgcolor="#777777"></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td bgcolor="#777777"></td>
+    <td bgcolor="#aaaaaa"><TMPL_VAR NAME="d2r3g4"></td>
+    <td></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d2r1g15"></td>
+    <td bgcolor="#777777"></td>
+    <td></td>
+    <td></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td bgcolor="#555555"></td>
+    <td bgcolor="#777777"><TMPL_VAR NAME="d2r2g8"></td>
+    <td></td>
+    <td></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d2r1g16"></td>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td></td>
+  </tr>
+
+</table>
+
+<hr>
+
+
+<h3><TMPL_VAR NAME="d3name"></h3>
+
+<table border="0" cellspacing="0" cellpadding="2" width="100%">
+  <tr>
+    <th width="20%">Final Four</th>
+    <th width="20%">Elite Eight</th>
+    <th width="20%">Sweet Sixteen</th>
+    <th width="20%">Second Round</th>
+    <th width="20%">First Round</th>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d3r1g1"></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td bgcolor="#777777"><TMPL_VAR NAME="d3r2g1"></td>
+    <td bgcolor="#555555"></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td bgcolor="#777777"></td>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d3r1g2"></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td></td>
+    <td bgcolor="#aaaaaa"><TMPL_VAR NAME="d3r3g1"></td>
+    <td bgcolor="#777777"></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td bgcolor="#777777"></td>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d3r1g3"></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td bgcolor="#777777"><TMPL_VAR NAME="d3r2g2"></td>
+    <td bgcolor="#555555"></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td></td>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d3r1g4"></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td bgcolor="#dddddd"><TMPL_VAR NAME="d3r4g1"></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td></td>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d3r1g5"></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td bgcolor="#777777"><TMPL_VAR NAME="d3r2g3"></td>
+    <td bgcolor="#555555"></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td bgcolor="#777777"></td>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d3r1g6"></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td bgcolor="#aaaaaa"><TMPL_VAR NAME="d3r3g2"></td>
+    <td bgcolor="#777777"></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+    <td bgcolor="#777777"></td>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d3r1g7"></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+    <td bgcolor="#777777"><TMPL_VAR NAME="d3r2g4"></td>
+    <td bgcolor="#555555"></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+    <td></td>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d3r1g8"></td>
+  </tr>
+
+  <tr>
+    <td bgcolor="#eeeeee"><TMPL_VAR NAME="d3winner"></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+    <td></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+    <td></td>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d3r1g9"></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+    <td bgcolor="#777777"><TMPL_VAR NAME="d3r2g5"></td>
+    <td bgcolor="#555555"></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+    <td bgcolor="#777777"></td>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d3r1g10"></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td bgcolor="#aaaaaa"><TMPL_VAR NAME="d3r3g3"></td>
+    <td bgcolor="#777777"></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td bgcolor="#777777"></td>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d3r1g11"></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td bgcolor="#777777"><TMPL_VAR NAME="d3r2g6"></td>
+    <td bgcolor="#555555"></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td></td>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d3r1g12"></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td bgcolor="#dddddd"><TMPL_VAR NAME="d3r4g2"></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td></td>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d3r1g13"></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td bgcolor="#777777"><TMPL_VAR NAME="d3r2g7"></td>
+    <td bgcolor="#555555"></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td bgcolor="#777777"></td>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d3r1g14"></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td></td>
+    <td bgcolor="#aaaaaa"><TMPL_VAR NAME="d3r3g4"></td>
+    <td bgcolor="#777777"></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td bgcolor="#777777"></td>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d3r1g15"></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td bgcolor="#777777"><TMPL_VAR NAME="d3r2g8"></td>
+    <td bgcolor="#555555"></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d3r1g16"></td>
+  </tr>
+
+</table>
+
+<hr>
+
+
+<h3><TMPL_VAR NAME="d4name"></h3>
+
+<table border="0" cellspacing="0" cellpadding="2" width="100%">
+  <tr>
+    <th width="20%">Final Four</th>
+    <th width="20%">Elite Eight</th>
+    <th width="20%">Sweet Sixteen</th>
+    <th width="20%">Second Round</th>
+    <th width="20%">First Round</th>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d4r1g1"></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td bgcolor="#777777"><TMPL_VAR NAME="d4r2g1"></td>
+    <td bgcolor="#555555"></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td bgcolor="#777777"></td>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d4r1g2"></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td></td>
+    <td bgcolor="#aaaaaa"><TMPL_VAR NAME="d4r3g1"></td>
+    <td bgcolor="#777777"></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td bgcolor="#777777"></td>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d4r1g3"></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td bgcolor="#777777"><TMPL_VAR NAME="d4r2g2"></td>
+    <td bgcolor="#555555"></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td></td>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d4r1g4"></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td bgcolor="#dddddd"><TMPL_VAR NAME="d4r4g1"></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td></td>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d4r1g5"></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td bgcolor="#777777"><TMPL_VAR NAME="d4r2g3"></td>
+    <td bgcolor="#555555"></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td bgcolor="#777777"></td>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d4r1g6"></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td bgcolor="#aaaaaa"><TMPL_VAR NAME="d4r3g2"></td>
+    <td bgcolor="#777777"></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+    <td bgcolor="#777777"></td>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d4r1g7"></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+    <td bgcolor="#777777"><TMPL_VAR NAME="d4r2g4"></td>
+    <td bgcolor="#555555"></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+    <td></td>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d4r1g8"></td>
+  </tr>
+
+  <tr>
+    <td bgcolor="#eeeeee"><TMPL_VAR NAME="d4winner"></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+    <td></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+    <td></td>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d4r1g9"></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+    <td bgcolor="#777777"><TMPL_VAR NAME="d4r2g5"></td>
+    <td bgcolor="#555555"></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+    <td bgcolor="#777777"></td>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d4r1g10"></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td bgcolor="#aaaaaa"><TMPL_VAR NAME="d4r3g3"></td>
+    <td bgcolor="#777777"></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td bgcolor="#777777"></td>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d4r1g11"></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td bgcolor="#777777"><TMPL_VAR NAME="d4r2g6"></td>
+    <td bgcolor="#555555"></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td></td>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d4r1g12"></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td bgcolor="#dddddd"><TMPL_VAR NAME="d4r4g2"></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td></td>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d4r1g13"></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td bgcolor="#777777"><TMPL_VAR NAME="d4r2g7"></td>
+    <td bgcolor="#555555"></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td bgcolor="#777777"></td>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d4r1g14"></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td></td>
+    <td bgcolor="#aaaaaa"><TMPL_VAR NAME="d4r3g4"></td>
+    <td bgcolor="#777777"></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td bgcolor="#777777"></td>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d4r1g15"></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td bgcolor="#777777"><TMPL_VAR NAME="d4r2g8"></td>
+    <td bgcolor="#555555"></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d4r1g16"></td>
+  </tr>
+
+</table>
+
+<hr>
+
+
+
+<table border="0" cellspacing="0" cellpadding="2" width="100%">
+  <tr>
+    <th width="20%">Final Four</th>
+    <th width="20%">National Championship</th>
+    <th width="20%">National Champion</th>
+    <th width="20%">National Championship</th>
+    <th width="20%">Final Four</th>
+  </tr>
+
+  <tr>
+    <td><TMPL_VAR NAME="d1name"></td>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td bgcolor="#aaaaaa"><TMPL_VAR NAME="d1winner2"></td>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td bgcolor="#aaaaaa"></td>
+    <td bgcolor="#cccccc"><TMPL_VAR NAME="d5winner"></td>
+    <td></td>
+    <td></td>
+    <td align="right"><TMPL_VAR NAME="d3name"></td>
+  </tr>
+  <tr>
+    <td bgcolor="#aaaaaa"><TMPL_VAR NAME="d2winner2"></td>
+    <td></td>
+    <td bgcolor="#eeeeee"><TMPL_VAR NAME="twinner"></td>
+    <td></td>
+    <td bgcolor="#aaaaaa"><TMPL_VAR NAME="d3winner2"></td>
+  </tr>
+  <tr>
+    <td><TMPL_VAR NAME="d2name"></td>
+    <td></td>
+    <td></td>
+    <td bgcolor="#cccccc"><TMPL_VAR NAME="d6winner"></td>
+    <td bgcolor="#aaaaaa"></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td bgcolor="#aaaaaa"><TMPL_VAR NAME="d4winner2"></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td align="right"><TMPL_VAR NAME="d4name"></td>
+  </tr>
+
+</table>
+</form>
+</div>
+</body>
+</html>
+

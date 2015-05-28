@@ -1,24 +1,5 @@
 #!/usr/bin/perl -wT
 # This is teamedit.pl, which edits team info
-#
-# Copyright (C) 2004 Russ Burdick, grub@extrapolation.net
-#
-# This file is part of tournament.
-#
-# tournament is free software; you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
-# (at your option) any later version.
-#
-# tournament is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with tournament; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
-#
 
 use strict;
 use diagnostics;
@@ -49,6 +30,8 @@ print $query->header("text/html");
 print $query->start_html(-title => "edit team",
 			 -bgcolor => "#FFFFFF");
 
+      my $tid = $query->param('tourneys');
+
 if ($query->request_method eq "GET") {
 
    print "<h2>Edit a Team:</h2>\n";
@@ -56,11 +39,10 @@ if ($query->request_method eq "GET") {
 
    # ------------------------------------------------------------
    # Connect to the database
-   my $dbh = DBI->connect("DBI:mysql:$dbdatabase:$dbserver:$dbport",
-                          $dbusername, $dbpassword);
+   my $dbh = DBI->connect($dsn, $dbusername, $dbpassword);
    die "DBI error from connect: ", $DBI::errstr unless $dbh;
 
-   my $sql = "SELECT * FROM tournaments ORDER BY year";
+   my $sql = "SELECT * FROM tournaments ORDER BY year DESC";
 
    # Send the query
    my $sth = $dbh->prepare($sql);
@@ -86,7 +68,12 @@ if ($query->request_method eq "GET") {
    # Finish that database call
    $sth->finish;
 
-   $sql = "SELECT * FROM divisions ORDER BY tourneyid,name";
+   $sql = "SELECT * FROM divisions";
+   if ($tid)
+   {
+      $sql .= " WHERE tourneyid = " . $dbh->quote($tid);
+   }
+   $sql .= " ORDER BY tourneyid,name";
 
    # Send the query
    $sth = $dbh->prepare($sql);
@@ -112,7 +99,13 @@ if ($query->request_method eq "GET") {
    # Finish that database call
    $sth->finish;
 
-   $sql = "SELECT * FROM teams ORDER BY divisionid, seed, name";
+   $sql = "SELECT teams.* FROM teams, divisions";
+   $sql .= " WHERE divisions.id = teams.divisionid";
+   if ($tid)
+   {
+      $sql .= " AND divisions.tourneyid = " . $dbh->quote($tid);
+   }
+   $sql .= " ORDER BY teams.divisionid, teams.seed, teams.name";
 
    # Send the query
    $sth = $dbh->prepare($sql);
@@ -129,8 +122,10 @@ if ($query->request_method eq "GET") {
       # Iterate through artist IDs and names
       my $row;
       while ($row = $sth->fetchrow_hashref) {
-         $entries{$row->{id}} = "($row->{seed}) $row->{name}, $divisions{$row->{divisionid}}";
-         push @entry_ids, $row->{id};
+         $entries{$row->{'id'}} = "(" . $row->{'seed'} . ") "
+                                . $row->{'name'} . ", "
+                                . $divisions{$row->{'divisionid'}};
+         push @entry_ids, $row->{'id'};
       }
 
       print "<p>" . $query->popup_menu(-name => "entries",
@@ -140,7 +135,7 @@ if ($query->request_method eq "GET") {
       print $query->submit(-name => "submit", 
                            -value => "edit entry") . "\n";
       print $query->submit(-name => "submit",
-                           -value => "delete entry") . "\n</p><hr>";
+                           -value => "delete entry") . "\n</p>";
 
    } else {
       print "<P>No teams to display!</P>\n";
@@ -151,12 +146,27 @@ if ($query->request_method eq "GET") {
 
    print "</form>\n";
 
+   print qq(<form method="GET" action="teamedit.pl">\n);
+
+      print "<p>" . $query->popup_menu(-name => "tourneys",
+                                   -values => \@tourney_ids,
+                                   -labels => \%tourneys) . "\n";
+
+      print $query->submit(-name => "submit",
+                           -value => "filter") . "\n</p><hr>";
+
+   print "</form>\n";
+
    print qq(<h2>Create New team:</h2>\n);
    print qq(<form method="POST" action="teamedit.pl">\n);
 
    print "<p>name: " . $query->textfield(-name => "name",
                                          -size => 50,
                                          -maxlength => 200) . "<br>\n";
+
+   print "alias: " . $query->textfield(-name => "alias",
+                                         -size => 15,
+                                         -maxlength => 15) . "<br>\n";
 
    print "seed: " . $query->textfield(-name => "seed",
                                          -size => 5,
@@ -180,18 +190,19 @@ if ($query->request_method eq "GET") {
    if ($query->param('submit') eq "add new entry") {
 
       my $name = $query->param('name');
+      my $alias = $query->param('alias');
       my $seed = $query->param('seed');
       my $did = $query->param('divisions');
-      if ($name && $seed && $did) {
+      if ($name && $seed && $did && $alias) {
 
          # ------------------------------------------------------------
          # Connect to the database
-         my $dbh = DBI->connect("DBI:mysql:$dbdatabase:$dbserver:$dbport",
-                                $dbusername, $dbpassword);
+         my $dbh = DBI->connect($dsn, $dbusername, $dbpassword);
          die "DBI error from connect: ", $DBI::errstr unless $dbh;
 
          my $sql = "INSERT INTO teams SET ";
          $sql .= "name = " . $dbh->quote($name);
+         $sql .= ", alias = " . $dbh->quote($alias);
          $sql .= ", seed = " . $dbh->quote($seed);
          $sql .= ", divisionid = " . $dbh->quote($did);
 
@@ -222,8 +233,7 @@ if ($query->request_method eq "GET") {
 
          # ------------------------------------------------------------
          # Connect to the database
-         my $dbh = DBI->connect("DBI:mysql:$dbdatabase:$dbserver:$dbport",
-                                $dbusername, $dbpassword);
+         my $dbh = DBI->connect($dsn, $dbusername, $dbpassword);
          die "DBI error from connect: ", $DBI::errstr unless $dbh;
 
          my $sql = "DELETE FROM teams WHERE ";
@@ -258,8 +268,7 @@ if ($query->request_method eq "GET") {
 
          # ------------------------------------------------------------
          # Connect to the database
-         my $dbh = DBI->connect("DBI:mysql:$dbdatabase:$dbserver:$dbport",
-                                $dbusername, $dbpassword);
+         my $dbh = DBI->connect($dsn, $dbusername, $dbpassword);
          die "DBI error from connect: ", $DBI::errstr unless $dbh;
 
    my $sql = "SELECT * FROM tournaments ORDER BY year";
@@ -347,6 +356,12 @@ if ($query->request_method eq "GET") {
                                             -size => 50,
                                             -maxlength => 200) . "<br>\n";
 
+         print "alias: " . $query->textfield(-name => "alias",
+                                            -default => $row->{alias},
+                                            -override => 1,
+                                            -size => 15,
+                                            -maxlength => 15) . "<br>\n";
+
          print "seed: " . $query->textfield(-name => "seed",
                                             -default => $row->{seed},
                                             -override => 1,
@@ -376,18 +391,19 @@ if ($query->request_method eq "GET") {
 
       my $id = $query->param('entryid');
       my $name = $query->param('name');
+      my $alias = $query->param('alias');
       my $seed = $query->param('seed');
       my $did = $query->param('divisions');
       if ($id && $name && $seed && $did) {
 
          # ------------------------------------------------------------
          # Connect to the database
-         my $dbh = DBI->connect("DBI:mysql:$dbdatabase:$dbserver:$dbport",
-                                $dbusername, $dbpassword);
+         my $dbh = DBI->connect($dsn, $dbusername, $dbpassword);
          die "DBI error from connect: ", $DBI::errstr unless $dbh;
 
          my $sql = "UPDATE teams SET ";
          $sql .= "name = " . $dbh->quote($name);
+         $sql .= ", alias = " . $dbh->quote($alias);
          $sql .= ", seed = " . $dbh->quote($seed);
          $sql .= ", divisionid = " . $dbh->quote($did);
          $sql .=" WHERE id=" . $dbh->quote($id);

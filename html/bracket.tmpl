@@ -1,0 +1,1071 @@
+<html>
+  <head>
+    <title>tournament brackets</title>
+  </head>
+  <body vlink="#000000" alink="#000000" link="#000000">
+
+   <h2><TMPL_VAR NAME="tname"></h2>
+   <p>Last Updated <TMPL_VAR NAME="tupdate"></p>
+   <p>Pick Cutoff <TMPL_VAR NAME="tcutoff"></p>
+   <p>number in round brackets is seed. symbols in square brackets indicate players who have picked this team.</p>
+
+   <p><a href="display.pl?tournament=<TMPL_VAR NAME="tid">">view pool standings</a></p>
+
+   <p>( <TMPL_VAR NAME="playersymbols"> )</p>
+
+<h3><TMPL_VAR NAME="d1name"></h3>
+
+<table border="0" cellspacing="0" cellpadding="2" width="100%">
+  <tr>
+    <th width="20%">First Round</th>
+    <th width="20%">Second Round</th>
+    <th width="20%">Sweet Sixteen</th>
+    <th width="20%">Elite Eight</th>
+    <th width="20%">Final Four</th>
+  </tr>
+
+  <tr>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d1r1g1"></td>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td bgcolor="#555555"></td>
+    <td bgcolor="#777777"><TMPL_VAR NAME="d1r2g1"></td>
+    <td></td>
+    <td></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d1r1g2"></td>
+    <td bgcolor="#777777"></td>
+    <td></td>
+    <td></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td bgcolor="#777777"></td>
+    <td bgcolor="#aaaaaa"><TMPL_VAR NAME="d1r3g1"></td>
+    <td></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d1r1g3"></td>
+    <td bgcolor="#777777"></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td bgcolor="#555555"></td>
+    <td bgcolor="#777777"><TMPL_VAR NAME="d1r2g2"></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d1r1g4"></td>
+    <td></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td bgcolor="#dddddd"><TMPL_VAR NAME="d1r4g1"></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d1r1g5"></td>
+    <td></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td bgcolor="#555555"></td>
+    <td bgcolor="#777777"><TMPL_VAR NAME="d1r2g3"></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d1r1g6"></td>
+    <td bgcolor="#777777"></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td bgcolor="#777777"></td>
+    <td bgcolor="#aaaaaa"><TMPL_VAR NAME="d1r3g2"></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d1r1g7"></td>
+    <td bgcolor="#777777"></td>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td bgcolor="#555555"></td>
+    <td bgcolor="#777777"><TMPL_VAR NAME="d1r2g4"></td>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d1r1g8"></td>
+    <td></td>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td bgcolor="#eeeeee"><TMPL_VAR NAME="d1winner"></td>
+  </tr>
+
+  <tr>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d1r1g9"></td>
+    <td></td>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td bgcolor="#555555"></td>
+    <td bgcolor="#777777"><TMPL_VAR NAME="d1r2g5"></td>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d1r1g10"></td>
+    <td bgcolor="#777777"></td>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td bgcolor="#777777"></td>
+    <td bgcolor="#aaaaaa"><TMPL_VAR NAME="d1r3g3"></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d1r1g11"></td>
+    <td bgcolor="#777777"></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td bgcolor="#555555"></td>
+    <td bgcolor="#777777"><TMPL_VAR NAME="d1r2g6"></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d1r1g12"></td>
+    <td></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td bgcolor="#dddddd"><TMPL_VAR NAME="d1r4g2"></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d1r1g13"></td>
+    <td></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td bgcolor="#555555"></td>
+    <td bgcolor="#777777"><TMPL_VAR NAME="d1r2g7"></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d1r1g14"></td>
+    <td bgcolor="#777777"></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td bgcolor="#777777"></td>
+    <td bgcolor="#aaaaaa"><TMPL_VAR NAME="d1r3g4"></td>
+    <td></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d1r1g15"></td>
+    <td bgcolor="#777777"></td>
+    <td></td>
+    <td></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td bgcolor="#555555"></td>
+    <td bgcolor="#777777"><TMPL_VAR NAME="d1r2g8"></td>
+    <td></td>
+    <td></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d1r1g16"></td>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td></td>
+  </tr>
+
+</table>
+
+<hr>
+
+<h3><TMPL_VAR NAME="d2name"></h3>
+
+<table border="0" cellspacing="0" cellpadding="2" width="100%">
+  <tr>
+    <th width="20%">First Round</th>
+    <th width="20%">Second Round</th>
+    <th width="20%">Sweet Sixteen</th>
+    <th width="20%">Elite Eight</th>
+    <th width="20%">Final Four</th>
+  </tr>
+
+  <tr>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d2r1g1"></td>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td bgcolor="#555555"></td>
+    <td bgcolor="#777777"><TMPL_VAR NAME="d2r2g1"></td>
+    <td></td>
+    <td></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d2r1g2"></td>
+    <td bgcolor="#777777"></td>
+    <td></td>
+    <td></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td bgcolor="#777777"></td>
+    <td bgcolor="#aaaaaa"><TMPL_VAR NAME="d2r3g1"></td>
+    <td></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d2r1g3"></td>
+    <td bgcolor="#777777"></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td bgcolor="#555555"></td>
+    <td bgcolor="#777777"><TMPL_VAR NAME="d2r2g2"></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d2r1g4"></td>
+    <td></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td bgcolor="#dddddd"><TMPL_VAR NAME="d2r4g1"></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d2r1g5"></td>
+    <td></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td bgcolor="#555555"></td>
+    <td bgcolor="#777777"><TMPL_VAR NAME="d2r2g3"></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d2r1g6"></td>
+    <td bgcolor="#777777"></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td bgcolor="#777777"></td>
+    <td bgcolor="#aaaaaa"><TMPL_VAR NAME="d2r3g2"></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d2r1g7"></td>
+    <td bgcolor="#777777"></td>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td bgcolor="#555555"></td>
+    <td bgcolor="#777777"><TMPL_VAR NAME="d2r2g4"></td>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d2r1g8"></td>
+    <td></td>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td bgcolor="#eeeeee"><TMPL_VAR NAME="d2winner"></td>
+  </tr>
+
+  <tr>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d2r1g9"></td>
+    <td></td>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td bgcolor="#555555"></td>
+    <td bgcolor="#777777"><TMPL_VAR NAME="d2r2g5"></td>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d2r1g10"></td>
+    <td bgcolor="#777777"></td>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td bgcolor="#777777"></td>
+    <td bgcolor="#aaaaaa"><TMPL_VAR NAME="d2r3g3"></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d2r1g11"></td>
+    <td bgcolor="#777777"></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td bgcolor="#555555"></td>
+    <td bgcolor="#777777"><TMPL_VAR NAME="d2r2g6"></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d2r1g12"></td>
+    <td></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td bgcolor="#dddddd"><TMPL_VAR NAME="d2r4g2"></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d2r1g13"></td>
+    <td></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td bgcolor="#555555"></td>
+    <td bgcolor="#777777"><TMPL_VAR NAME="d2r2g7"></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d2r1g14"></td>
+    <td bgcolor="#777777"></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td bgcolor="#777777"></td>
+    <td bgcolor="#aaaaaa"><TMPL_VAR NAME="d2r3g4"></td>
+    <td></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d2r1g15"></td>
+    <td bgcolor="#777777"></td>
+    <td></td>
+    <td></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td bgcolor="#555555"></td>
+    <td bgcolor="#777777"><TMPL_VAR NAME="d2r2g8"></td>
+    <td></td>
+    <td></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d2r1g16"></td>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td></td>
+  </tr>
+
+</table>
+
+<hr>
+
+
+<h3><TMPL_VAR NAME="d3name"></h3>
+
+<table border="0" cellspacing="0" cellpadding="2" width="100%">
+  <tr>
+    <th width="20%">Final Four</th>
+    <th width="20%">Elite Eight</th>
+    <th width="20%">Sweet Sixteen</th>
+    <th width="20%">Second Round</th>
+    <th width="20%">First Round</th>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d3r1g1"></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td bgcolor="#777777"><TMPL_VAR NAME="d3r2g1"></td>
+    <td bgcolor="#555555"></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td bgcolor="#777777"></td>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d3r1g2"></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td></td>
+    <td bgcolor="#aaaaaa"><TMPL_VAR NAME="d3r3g1"></td>
+    <td bgcolor="#777777"></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td bgcolor="#777777"></td>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d3r1g3"></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td bgcolor="#777777"><TMPL_VAR NAME="d3r2g2"></td>
+    <td bgcolor="#555555"></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td></td>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d3r1g4"></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td bgcolor="#dddddd"><TMPL_VAR NAME="d3r4g1"></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td></td>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d3r1g5"></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td bgcolor="#777777"><TMPL_VAR NAME="d3r2g3"></td>
+    <td bgcolor="#555555"></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td bgcolor="#777777"></td>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d3r1g6"></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td bgcolor="#aaaaaa"><TMPL_VAR NAME="d3r3g2"></td>
+    <td bgcolor="#777777"></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+    <td bgcolor="#777777"></td>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d3r1g7"></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+    <td bgcolor="#777777"><TMPL_VAR NAME="d3r2g4"></td>
+    <td bgcolor="#555555"></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+    <td></td>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d3r1g8"></td>
+  </tr>
+
+  <tr>
+    <td bgcolor="#eeeeee"><TMPL_VAR NAME="d3winner"></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+    <td></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+    <td></td>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d3r1g9"></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+    <td bgcolor="#777777"><TMPL_VAR NAME="d3r2g5"></td>
+    <td bgcolor="#555555"></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+    <td bgcolor="#777777"></td>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d3r1g10"></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td bgcolor="#aaaaaa"><TMPL_VAR NAME="d3r3g3"></td>
+    <td bgcolor="#777777"></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td bgcolor="#777777"></td>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d3r1g11"></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td bgcolor="#777777"><TMPL_VAR NAME="d3r2g6"></td>
+    <td bgcolor="#555555"></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td></td>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d3r1g12"></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td bgcolor="#dddddd"><TMPL_VAR NAME="d3r4g2"></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td></td>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d3r1g13"></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td bgcolor="#777777"><TMPL_VAR NAME="d3r2g7"></td>
+    <td bgcolor="#555555"></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td bgcolor="#777777"></td>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d3r1g14"></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td></td>
+    <td bgcolor="#aaaaaa"><TMPL_VAR NAME="d3r3g4"></td>
+    <td bgcolor="#777777"></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td bgcolor="#777777"></td>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d3r1g15"></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td bgcolor="#777777"><TMPL_VAR NAME="d3r2g8"></td>
+    <td bgcolor="#555555"></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d3r1g16"></td>
+  </tr>
+
+</table>
+
+<hr>
+
+
+<h3><TMPL_VAR NAME="d4name"></h3>
+
+<table border="0" cellspacing="0" cellpadding="2" width="100%">
+  <tr>
+    <th width="20%">Final Four</th>
+    <th width="20%">Elite Eight</th>
+    <th width="20%">Sweet Sixteen</th>
+    <th width="20%">Second Round</th>
+    <th width="20%">First Round</th>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d4r1g1"></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td bgcolor="#777777"><TMPL_VAR NAME="d4r2g1"></td>
+    <td bgcolor="#555555"></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td bgcolor="#777777"></td>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d4r1g2"></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td></td>
+    <td bgcolor="#aaaaaa"><TMPL_VAR NAME="d4r3g1"></td>
+    <td bgcolor="#777777"></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td bgcolor="#777777"></td>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d4r1g3"></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td bgcolor="#777777"><TMPL_VAR NAME="d4r2g2"></td>
+    <td bgcolor="#555555"></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td></td>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d4r1g4"></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td bgcolor="#dddddd"><TMPL_VAR NAME="d4r4g1"></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td></td>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d4r1g5"></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td bgcolor="#777777"><TMPL_VAR NAME="d4r2g3"></td>
+    <td bgcolor="#555555"></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td bgcolor="#777777"></td>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d4r1g6"></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td bgcolor="#aaaaaa"><TMPL_VAR NAME="d4r3g2"></td>
+    <td bgcolor="#777777"></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+    <td bgcolor="#777777"></td>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d4r1g7"></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+    <td bgcolor="#777777"><TMPL_VAR NAME="d4r2g4"></td>
+    <td bgcolor="#555555"></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+    <td></td>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d4r1g8"></td>
+  </tr>
+
+  <tr>
+    <td bgcolor="#eeeeee"><TMPL_VAR NAME="d4winner"></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+    <td></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+    <td></td>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d4r1g9"></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+    <td bgcolor="#777777"><TMPL_VAR NAME="d4r2g5"></td>
+    <td bgcolor="#555555"></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td></td>
+    <td bgcolor="#777777"></td>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d4r1g10"></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td bgcolor="#aaaaaa"><TMPL_VAR NAME="d4r3g3"></td>
+    <td bgcolor="#777777"></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td bgcolor="#777777"></td>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d4r1g11"></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td bgcolor="#777777"><TMPL_VAR NAME="d4r2g6"></td>
+    <td bgcolor="#555555"></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td bgcolor="#dddddd"></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td></td>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d4r1g12"></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td bgcolor="#dddddd"><TMPL_VAR NAME="d4r4g2"></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td></td>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d4r1g13"></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td bgcolor="#777777"><TMPL_VAR NAME="d4r2g7"></td>
+    <td bgcolor="#555555"></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td></td>
+    <td bgcolor="#aaaaaa"></td>
+    <td bgcolor="#777777"></td>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d4r1g14"></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td></td>
+    <td bgcolor="#aaaaaa"><TMPL_VAR NAME="d4r3g4"></td>
+    <td bgcolor="#777777"></td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td bgcolor="#777777"></td>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d4r1g15"></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td bgcolor="#777777"><TMPL_VAR NAME="d4r2g8"></td>
+    <td bgcolor="#555555"></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td bgcolor="#555555"><TMPL_VAR NAME="d4r1g16"></td>
+  </tr>
+
+</table>
+
+<hr>
+
+
+
+<table border="0" cellspacing="0" cellpadding="2" width="100%">
+  <tr>
+    <th width="20%">Final Four</th>
+    <th width="20%">National Championship</th>
+    <th width="20%">National Champion</th>
+    <th width="20%">National Championship</th>
+    <th width="20%">Final Four</th>
+  </tr>
+
+  <tr>
+    <td><TMPL_VAR NAME="d1name"></td>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td bgcolor="#aaaaaa"><TMPL_VAR NAME="d1winner"></td>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td bgcolor="#aaaaaa"></td>
+    <td bgcolor="#cccccc"><TMPL_VAR NAME="d5winner"></td>
+    <td></td>
+    <td></td>
+    <td align="right"><TMPL_VAR NAME="d3name"></td>
+  </tr>
+  <tr>
+    <td bgcolor="#aaaaaa"><TMPL_VAR NAME="d2winner"></td>
+    <td></td>
+    <td bgcolor="#eeeeee"><TMPL_VAR NAME="twinner"></td>
+    <td></td>
+    <td bgcolor="#aaaaaa"><TMPL_VAR NAME="d3winner"></td>
+  </tr>
+  <tr>
+    <td><TMPL_VAR NAME="d2name"></td>
+    <td></td>
+    <td></td>
+    <td bgcolor="#cccccc"><TMPL_VAR NAME="d6winner"></td>
+    <td bgcolor="#aaaaaa"></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td bgcolor="#aaaaaa"><TMPL_VAR NAME="d4winner"></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td align="right"><TMPL_VAR NAME="d4name"></td>
+  </tr>
+
+</table>
+
+</body>
+</html>
+

@@ -1,24 +1,5 @@
 #!/usr/bin/perl -wT
 # This is playeredit.pl, which edits player info
-#
-# Copyright (C) 2004 Russ Burdick, grub@extrapolation.net
-#
-# This file is part of tournament.
-#
-# tournament is free software; you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
-# (at your option) any later version.
-#
-# tournament is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with tournament; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
-#
 
 use strict;
 use diagnostics;
@@ -52,8 +33,7 @@ if ($query->request_method eq "GET") {
 
    # ------------------------------------------------------------
    # Connect to the database
-   my $dbh = DBI->connect("DBI:mysql:$dbdatabase:$dbserver:$dbport",
-                          $dbusername, $dbpassword);
+   my $dbh = DBI->connect($dsn, $dbusername, $dbpassword);
    die "DBI error from connect: ", $DBI::errstr unless $dbh;
 
    my $sql = "SELECT * FROM players ORDER BY name";
@@ -133,8 +113,7 @@ if ($query->request_method eq "GET") {
 
          # ------------------------------------------------------------
          # Connect to the database
-         my $dbh = DBI->connect("DBI:mysql:$dbdatabase:$dbserver:$dbport",
-                                $dbusername, $dbpassword);
+         my $dbh = DBI->connect($dsn, $dbusername, $dbpassword);
          die "DBI error from connect: ", $DBI::errstr unless $dbh;
 
          my $sql = "INSERT INTO players SET ";
@@ -170,8 +149,7 @@ if ($query->request_method eq "GET") {
 
          # ------------------------------------------------------------
          # Connect to the database
-         my $dbh = DBI->connect("DBI:mysql:$dbdatabase:$dbserver:$dbport",
-                                $dbusername, $dbpassword);
+         my $dbh = DBI->connect($dsn, $dbusername, $dbpassword);
          die "DBI error from connect: ", $DBI::errstr unless $dbh;
 
          my $sql = "DELETE FROM players WHERE ";
@@ -206,8 +184,7 @@ if ($query->request_method eq "GET") {
 
          # ------------------------------------------------------------
          # Connect to the database
-         my $dbh = DBI->connect("DBI:mysql:$dbdatabase:$dbserver:$dbport",
-                                $dbusername, $dbpassword);
+         my $dbh = DBI->connect($dsn, $dbusername, $dbpassword);
          die "DBI error from connect: ", $DBI::errstr unless $dbh;
 
          my $sql = "SELECT * FROM players WHERE ";
@@ -282,8 +259,7 @@ if ($query->request_method eq "GET") {
 
          # ------------------------------------------------------------
          # Connect to the database
-         my $dbh = DBI->connect("DBI:mysql:$dbdatabase:$dbserver:$dbport",
-                                $dbusername, $dbpassword);
+         my $dbh = DBI->connect($dsn, $dbusername, $dbpassword);
          die "DBI error from connect: ", $DBI::errstr unless $dbh;
 
          my $sql = "UPDATE players SET ";
